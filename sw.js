@@ -1,5 +1,5 @@
 /* Offline: the app is kept on the phone after the first visit and refreshed in the background when online. */
-const VERSION = 'mlo-master-0113c0d43c';
+const VERSION = 'mlo-master-1a5f0ac76d';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => Promise.all(CORE.map(u => c.add(u).catch(() => null)))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('mlo-master-') && k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
