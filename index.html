@@ -237,7 +237,9 @@ function citeLink(c){
 }
 function fromBank(r){const S=BANK.S,code=r[2];return {id:r[0],family:r[1],code,category:SEC_CAT[code.split('.')[0]],topic:BANK.topics[code],level:r[3],isMath:r[4]===1,prompt:S[r[5]],choices:r[6].map(i=>S[i]),correct:r[7],choiceReasons:r[8].map((i,k)=>k===r[7]?'Correct.':S[i]),definition:S[r[9]],why:'',trigger:S[r[10]],memory:S[r[11]],cite:S[r[12]],source:citeLink(S[r[12]]),checked:r[13],steps:r[14].map(i=>S[i]),plain:r[15]>=0?S[r[15]]:'',status:'verified'}}
 for(const q of data)q.code=ORIG_CODE[q.category+'|'+q.topic]||'';
-const QUESTIONS=Object.freeze(data.concat(BANK.Q.map(fromBank)).map(q=>Object.freeze({...q,choices:Object.freeze(q.choices.slice()),choiceReasons:Object.freeze(q.choiceReasons.slice()),steps:Object.freeze((q.steps||[]).slice())})));
+// a true/false statement question: "Which statement about ... is TRUE?", "Three of the following ... Which one is accurate?", "... EXCEPT:"
+const STMT_RE=/(statements? (?:about|concerning)|Which (?:one )?of the following (?:statements )?is (?:TRUE|FALSE|true|false|accurate|NOT accurate)|EXCEPT:|is (?:TRUE|FALSE)\?$|Which statement)/;
+const QUESTIONS=Object.freeze(data.concat(BANK.Q.map(fromBank)).map(q=>Object.freeze({...q,isStmt:STMT_RE.test(q.prompt),choices:Object.freeze(q.choices.slice()),choiceReasons:Object.freeze(q.choiceReasons.slice()),steps:Object.freeze((q.steps||[]).slice())})));
 const CATEGORIES=Object.freeze({FED:{name:'Federal Laws',weight:24},USC:{name:'Uniform State',weight:11},GMK:{name:'Mortgage Knowledge',weight:20},ORIG:{name:'Origination',weight:27},ETH:{name:'Ethics',weight:18}});
 const EXAM_QUOTA=Object.freeze({FED:29,USC:13,GMK:24,ORIG:32,ETH:22});      // 120 questions in the outline's proportions
 const MODES=Object.freeze(['adaptive','fresh','review']);
@@ -313,7 +315,9 @@ function classify(exposures,attempts,s,rng=Math.random,M=mastery(attempts)){
   const ok=f.qs.filter(q=>candidatePasses(q,s));if(!ok.length)continue;
   counts.all+=ok.length;
   const e=exposures[fam],seen=new Set(e?.seenIds||[]),unseen=ok.filter(q=>!seen.has(q.id));
-  const pick=arr=>{const pr=arr.filter(q=>prefer(q,f.category));const from=pr.length?pr:arr;return from[Math.floor(rng()*from.length)]};
+  // Fewer true/false statements: about 1 rule in 5 is asked as a statement question when it has one; the rest get a direct wording
+  const want=s.statements==='fewer'?rng()<0.28:null;
+  const pick=arr=>{if(want!==null){const w=arr.filter(q=>q.isStmt===want);if(w.length)arr=w}const pr=arr.filter(q=>prefer(q,f.category));const from=pr.length?pr:arr;return from[Math.floor(rng()*from.length)]};
   const r=M.fam[fam];let kind,q;
   if(!e){kind='fresh';q=pick(ok)}
   else if((r&&r.known===false)||e.confusing){if(unseen.length){kind='review';q=pick(unseen)}else{kind='repeat';q=pick(ok)}}    // missed, or you marked it confusing; no new wording left: only Review Missed repeats it
@@ -346,7 +350,7 @@ function tiltedQuotas(n,M){
  return out;
 }
 function selectQuestions(bank,exposures={},attempts=[],settings={},rng=Math.random){
- const s={mode:'adaptive',difficulty:'mixed',math:'normal',category:'ALL',count:10,...settings};
+ const s={mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',category:'ALL',count:10,...settings};
  const requested=Math.max(1,Math.min(120,Number(s.count)||10));
  const M=mastery(attempts);
  if(s.code)s.category=SEC_CAT[s.code.split('.')[0]];
@@ -639,11 +643,12 @@ function fitHandwriting(c,n,actual){
 const KEY='safe-mlo-master-v1';
 const A5_BOOK=Object.freeze({width:148,height:210,ruleGap:6,lines:0});
 const DEFAULTS={
- schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
+ schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='2.4';
+const APP_VERSION='2.5';
 const WHATS_NEW=[
+ 'New choice when you start a set: fewer true/false statement questions ("Which statement is TRUE?", "...EXCEPT"). Fewer asks the same rules in a direct wording, leaving about 1 in 5.',
  'Your notes are written in full: the whole question, the whole answer and the truth for every wrong answer. Nothing is cut down to fit any more.',
  'No initials in your notes. Each one is spelled out with the initials after it the first time, like "Real Estate Settlement Procedures Act (RESPA)", then the full name. The questions themselves keep the exam\'s wording.',
  'Two questions share a page whenever the second fits in the lines the first left, the way you write them. If it does not fit, it starts a new page. Math still gets its own page.',
@@ -814,11 +819,12 @@ function renderSetup(type){const s={...state.settings};if(type==='exam'&&s.mode=
  <label class="field">Number of questions<select data-setting="${countKey}">${opts.map(([n,l])=>`<option value="${n}" ${cur===n?'selected':''}>${l}</option>`).join('')}</select></label>
  <label class="field">Question style<select data-setting="difficulty"><option value="test-day" ${s.difficulty==='test-day'?'selected':''}>Test Day</option><option value="mixed" ${s.difficulty==='mixed'?'selected':''}>Mixed</option><option value="impossible" ${s.difficulty==='impossible'?'selected':''}>Impossible</option></select></label>
  <label class="field">Mathematics<select data-setting="math"><option value="normal" ${s.math==='normal'?'selected':''}>Normal</option><option value="fewer" ${s.math==='fewer'?'selected':''}>Fewer</option></select></label>
+ <label class="field">True/false statement questions<select data-setting="statements"><option value="normal" ${s.statements!=='fewer'?'selected':''}>Normal (about half)</option><option value="fewer" ${s.statements==='fewer'?'selected':''}>Fewer (about 1 in 5)</option></select></label>
  <label class="field">NMLS category<select data-setting="category"><option value="ALL" ${s.category==='ALL'?'selected':''}>All 5 categories</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${s.category===k?'selected':''}>${k} — ${c.name}</option>`).join('')}</select></label>
  <label class="field">Topic<select data-setting="code"><option value="">Any topic</option>${Object.keys(BANK.topics).filter(c=>s.category==='ALL'||SEC_CAT[c.split('.')[0]]===s.category).map(c=>`<option value="${c}" ${s.code===c?'selected':''}>${c} ${HTML(BANK.topics[c])}</option>`).join('')}</select></label>
  <label class="field">Memory hooks<select data-setting="memory"><option value="on" ${memOn()?'selected':''}>On</option><option value="off" ${memOn()?'':'selected'}>Off</option></select></label>
  </div><div class="divider"></div><div class="kpi-row"><span class="chip">✦ ${nfmt(counts.fresh)} fresh rules</span><span class="chip">↺ ${nfmt(counts.review)} missed rules</span><span class="chip">⟳ ${nfmt(counts.due)} due for a check</span><span class="chip">✎ ${nfmt(counts.again)} with a new wording left</span><span class="chip">▤ ${nfmt(counts.all)} questions in this filter</span></div>
- <div class="notice" style="margin-top:17px">Adaptive gives weak areas up to twice their usual share (every area keeps at least 60% of its share), puts weaker topics first, and in Mixed style moves to harder wording once an area passes 85%. About 1 question in 5 is a missed rule and about 1 in 7 is a spaced check. Test Day uses direct questions and short calculations; Impossible uses dense wording, close traps and the longest calculations. Normal math makes about one question in ten a calculation; Fewer makes it about one in twenty, and none in short sets. The answer order is shuffled every time, so the letter never gives anything away. The official exam does not publish a fixed number of math questions.</div>
+ <div class="notice" style="margin-top:17px">Adaptive gives weak areas up to twice their usual share (every area keeps at least 60% of its share), puts weaker topics first, and in Mixed style moves to harder wording once an area passes 85%. About 1 question in 5 is a missed rule and about 1 in 7 is a spaced check. Test Day uses direct questions and short calculations; Impossible uses dense wording, close traps and the longest calculations. Normal math makes about one question in ten a calculation; Fewer makes it about one in twenty, and none in short sets. True/false statement questions ("Which statement is TRUE?", "...EXCEPT") are about half of a set on Normal; Fewer asks the same rules in a direct wording instead, leaving about 1 in 5, since the real exam still uses them. The answer order is shuffled every time, so the letter never gives anything away. The official exam does not publish a fixed number of math questions.</div>
  <div class="actions" style="margin-top:18px">${button('start-'+type,isExam?'Start Timed Exam →':s.mode==='learn'?'Start Learning →':'Start Practice →','primary')}</div></div></section>
  ${previous.length?`<section class="section"><h3>Recent sessions</h3><div class="panel">${previous.map(x=>sessionRow(x)).join('')}</div></section>`:''}`;
 }
@@ -936,7 +942,7 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="panel"><h3>Help the app evolve</h3><p class="muted small" style="margin:10px 0 12px">It tunes itself as you use it: it learns your handwriting from the lines you count, leans on the areas you miss, and gives the rule first on anything you missed twice or marked confusing. For fixes and new explanations, copy this report and paste it into your chat with Claude; the changes come back as an update that installs itself.</p><p class="small">${state.reports.length} report${state.reports.length===1?'':'s'} · ${Object.values(state.exposures).filter(e=>(e.lapses||0)>=2).length} rules missed twice or more</p><div class="actions" style="margin-top:12px">${button('copy-report','Copy report for Claude','primary sm')}${button('download-report','Download it','ghost sm')}</div></div>
  <div class="panel"><h3>Memory hooks</h3><p class="muted small" style="margin:10px 0 14px">Turn the Rebirth Island memory hooks on or off everywhere: under each answer, in the results and in the notebook.</p><div class="actions"><button class="btn sm ${memOn()?'primary':'ghost'}" data-memory="on">On</button><button class="btn sm ${memOn()?'ghost':'primary'}" data-memory="off">Off</button></div></div>
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
- <div class="panel"><h3>Application information</h3><p class="muted small">Version 2.4 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
+ <div class="panel"><h3>Application information</h3><p class="muted small">Version 2.5 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
  <div class="notice warn" style="margin-top:15px">Regulatory requirements change. Always confirm official NMLS and CFPB requirements before relying on legal statements in the study bank. This is not an official exam or verified pass predictor.</div>`}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
 function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? Its unanswered questions will stay marked as seen.'))return}
@@ -946,7 +952,7 @@ function startSession(type,override){if(state.active){if(!confirm('Replace your 
  if(!selected.questions.length){toast('No eligible questions. Try another mode or category.',true);return}
  if(selected.shortage>0&&!confirm(`Only ${selected.available} of ${selected.requested} eligible questions are available. Start a shorter set with no repeats?`))return;
  const lessonFor=type==='practice'&&request.mode!=='learn'?selected.questions.filter(q=>{const e=state.exposures[q.family];return e&&(e.confusing||((e.lapses||0)>=2&&e.lastCorrect===false))}).map(q=>q.id):[];
- const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{}};
+ const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,statements:request.statements,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{}};
  exposeQuestions(selected.questions);state.active=active;state.route=type;persist();render();window.scrollTo(0,0);toast(`Started: ${selected.freshCount} fresh · ${selected.reviewCount} review${selected.againCount?` · ${selected.againCount} new wording`:''}${selected.repeats?` · ${selected.repeats} seen before`:''}`);
 }
 function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family===q.family);const correct=chosen===q.correct;
@@ -1058,7 +1064,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261013055619-b3945917',OPENED=Date.now();
+const BUILD='20261013061217-b651c192',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
