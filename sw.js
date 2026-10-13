@@ -1,5 +1,5 @@
 /* Offline: the app is kept on the phone after the first visit. A new version is fetched fresh (not from the browser cache) and takes over on its own. */
-const VERSION = 'mlo-master-20261013061217-b651c192';
+const VERSION = 'mlo-master-20261013062228-5f5f2b3b';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => Promise.all(CORE.map(u => c.add(new Request(u, {cache: 'reload'})).catch(() => null)))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('mlo-master-') && k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

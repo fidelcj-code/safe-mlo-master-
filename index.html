@@ -496,6 +496,42 @@ function speller(){
  return f;
 }
 
+// ---------- the answer hiding in the question: words of the question that only the right answer repeats ----------
+const CLUE_STOP=new Set('a an the of to in on for by with at from as and or but if then than that this these those which who whom whose what when where why how is are was were be been being it its it\'s their there they them he she his her you your we our not no all any each every some such may must can could would should shall will under over into within without about after before between during per one two three four five six seven eight nine ten following statement statements accurate inaccurate true false except which is'.split(' '));
+const CLUE_COMMON=new Set('loan loans mortgage mortgages borrower borrowers lender lenders consumer consumers creditor creditors property application applicant originator originators lending credit payment payments interest rate rates days business amount percent required require requires must months years state states federal rule rules under person persons information disclosure disclosures provide provided provides receive received'.split(' '));
+function clueWords(t){return String(t).toLowerCase().replace(/[“”"'’]/g,'').replace(/[^a-z0-9$%.,\- ]+/g,' ').replace(/[.,](?!\d)/g,' ').split(/\s+/).filter(Boolean)}
+const clueStrong=w=>/\d/.test(w)||(w.length>=5&&!CLUE_STOP.has(w)&&!CLUE_COMMON.has(w));
+// only a real giveaway counts: not a statement question (its stem just lists the topics), not a calculation, and none of the
+// wrong answers repeats a key word of the question; the right one does
+function stemClue(q){
+ if(q.isMath||q.isStmt||(typeof learnOf==='function'&&learnOf(q.family)?.kind==='T'))return '';
+ const stem=clueWords(q.prompt),ans=clueWords(q.choices[q.correct]),wrongW=q.choices.filter((c,i)=>i!==q.correct).map(clueWords);
+ const stemStrong=new Set(stem.filter(clueStrong)),echo=w=>new Set(w.filter(x=>stemStrong.has(x))).size;
+ const mine=echo(ans);if(!mine||wrongW.some(w=>echo(w)>=mine))return '';            // the right answer repeats the question more than any wrong one
+ const wrong=wrongW.map(w=>' '+w.join(' ')+' ');
+ let best='';
+ for(let i=0;i<ans.length;i++)for(let j=0;j<stem.length;j++){
+  let k=0;while(i+k<ans.length&&j+k<stem.length&&ans[i+k]===stem[j+k])k++;
+  for(let len=k;len>=1;len--){
+   let seq=ans.slice(i,i+len);while(seq.length&&CLUE_STOP.has(seq[0]))seq=seq.slice(1);while(seq.length&&CLUE_STOP.has(seq[seq.length-1]))seq=seq.slice(0,-1);
+   if(!seq.length)continue;const p=seq.join(' ');
+   const strong=seq.filter(clueStrong);
+   if(!strong.length||(seq.length===1&&!(/\d/.test(p)?p.replace(/\D/g,'').length>=2:p.length>=7)))continue;
+   if(wrong.some(w=>w.includes(' '+p+' ')))continue;
+   if(p.length>best.length)best=p;break;
+  }
+ }
+ return best;
+}
+// the clue as it is written in the answer, once per question
+const CLUE_CACHE=new Map();
+function clueOf(q){
+ if(CLUE_CACHE.has(q.id))return CLUE_CACHE.get(q.id);
+ const t=stemClue(q);let out='';
+ if(t){const re=new RegExp(t.split(' ').map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('[^A-Za-z0-9$%]+'),'i');const m=re.exec(q.choices[q.correct]);out=m?m[0]:t}
+ CLUE_CACHE.set(q.id,out);return out;
+}
+
 // ---------- the notebook page: each entry drawn on your ruled A5 page, two to a page, math on a page of its own ----------
 const GEN_NOTE='Not what the rule says. See the Rule line.';
 function plainCmp(x){return x.toLowerCase().replace(/[^a-z0-9$%.]+/g,' ').replace(/\.(\s|$)/g,' ').trim()}
@@ -565,7 +601,7 @@ function pagePaper(n,tier){
  const tw=twistText(q,9);
  const hand=q.steps.length?`<div class="a5steps">${q.steps.map((s2,i)=>`<p class="hs">${i?'':'<b>By hand</b> '}${HTML(sp(s2))}</p>`).join('')}</div>`:'';
  const head=row('Question',sp(q.prompt))+row('Answer',`${L(q.correct)}. ${sp(ans)}`)+row('Rule',same?'Same as the answer.':sp(rule))+(q.why?row('Why',sp(q.why)):'');
- const tail=(tw?row('Twists',sp(tw)):'')+row('Trigger',sp(q.trigger))+(memOn()?row('Memory',sp(q.memory)):'')+(n.mine?row('My words',n.mine):'');
+ const tail=(tw?row('Twists',sp(tw)):'')+row('Trigger',sp(q.trigger)+(clueOf(q)?` Clue: the question says “${sp(clueOf(q))}”, and only the right answer repeats it.`:''))+(memOn()?row('Memory',sp(q.memory)):'')+(n.mine?row('My words',n.mine):'');
  return flow?`<p>${head}</p>${hand}<p>${wrong}</p><p>${tail}</p>`:head+hand+`<div class="a5w">${wrong}</div>`+tail;
 }
 // ---------- where an entry sits on paper: in the order answered, math on a page of its own, the rest two to a page ----------
@@ -646,8 +682,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='2.5';
+const APP_VERSION='2.6';
 const WHATS_NEW=[
+ 'When a question gives its own answer away (the right answer repeats a word from the question and no wrong answer does), the Exam Trigger now points it out as a clue.',
  'New choice when you start a set: fewer true/false statement questions ("Which statement is TRUE?", "...EXCEPT"). Fewer asks the same rules in a direct wording, leaving about 1 in 5.',
  'Your notes are written in full: the whole question, the whole answer and the truth for every wrong answer. Nothing is cut down to fit any more.',
  'No initials in your notes. Each one is spelled out with the initials after it the first time, like "Real Estate Settlement Procedures Act (RESPA)", then the full name. The questions themselves keep the exam\'s wording.',
@@ -872,7 +909,7 @@ function explanationHTML(q,perm,pick){
   return `<li${o===pick?' class="mine"':''}><b>${letterOf(perm,o)}.</b> ${body}${o===pick?' <em>Your pick.</em>':''}</li>`}).join('');
  const rows=[['Answer',`${letterOf(perm,q.correct)}. ${sp(q.choices[q.correct])}`],['Rule',sp(q.definition)],...(q.why?[['Why',sp(q.why)]]:[])].map(([k,v])=>`<div class="expl-row"><b>${HTML(k)}</b><p>${HTML(v)}</p></div>`).join('')+
   `<div class="expl-row"><b>Wrong</b><ul class="wrong-list">${wrong}</ul></div>`+twistRow(q,sp)+
-  [['Exam Trigger',sp(q.trigger)],...(memOn()?[['Memory',sp(q.memory)]]:[]),...(q.steps.length?[['Solve By Hand',q.steps.map((line,i)=>`${i+1}. ${sp(line)}`).join('\n')]]:[])].map(([k,v])=>`<div class="expl-row"><b>${HTML(k)}</b><p style="white-space:pre-wrap">${HTML(v)}</p></div>`).join('');
+  [['Exam Trigger',sp(q.trigger)+(clueOf(q)?`\nClue in the question: it says “${sp(clueOf(q))}”, and only the right answer repeats it.`:'')],...(memOn()?[['Memory',sp(q.memory)]]:[]),...(q.steps.length?[['Solve By Hand',q.steps.map((line,i)=>`${i+1}. ${sp(line)}`).join('\n')]]:[])].map(([k,v])=>`<div class="expl-row"><b>${HTML(k)}</b><p style="white-space:pre-wrap">${HTML(v)}</p></div>`).join('');
  return rows+`<p class="fineprint">Source: ${HTML(q.cite)}${q.source?` · <a href="${HTML(q.source)}" rel="noopener noreferrer" target="_blank">Open it ↗</a>`:''}${q.checked?' · <span class="ok-chip">Checked against the text</span>':''}</p>`;
 }
 function renderResults(){
@@ -906,7 +943,7 @@ function noteView(n){
  const perm=n.perm||[0,1,2,3],L=o=>letterOf(perm,o),sp=speller();
  const head=[`Question: ${sp(q.prompt)}`,`Answer: ${L(q.correct)}. ${sp(q.choices[q.correct])}`,`Rule: ${sp(q.definition)}`,...(q.why?[`Why: ${sp(q.why)}`]:[])];
  const wrong=perm.filter(o=>o!==q.correct).map(o=>`  ${L(o)}. ${wrongNote(q,o,sp)}${o===n.pick?' (your pick)':''}`).join('\n');
- const text=[...head,`Wrong:\n${wrong}`,...(twistText(q)?[`Twists: ${sp(twistText(q))}`]:[]),`Trigger: ${sp(q.trigger)}`,...(memOn()?[`Memory: ${sp(q.memory)}`]:[]),...(n.mine?[`My words: ${n.mine}`]:[]),`Source: ${q.cite}`].join('\n');
+ const text=[...head,`Wrong:\n${wrong}`,...(twistText(q)?[`Twists: ${sp(twistText(q))}`]:[]),`Trigger: ${sp(q.trigger)}${clueOf(q)?` Clue: the question says “${sp(clueOf(q))}”, and only the right answer repeats it.`:''}`,...(memOn()?[`Memory: ${sp(q.memory)}`]:[]),...(n.mine?[`My words: ${n.mine}`]:[]),`Source: ${q.cite}`].join('\n');
  return {title:`${n.pick===q.correct?'✓':'✗'} ${q.category} · ${q.topic}`,text,isMath:q.isMath,steps:q.steps,category:q.category,manual:false};
 }
 function addNote(q,pick,perm,sessionId){
@@ -942,7 +979,7 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="panel"><h3>Help the app evolve</h3><p class="muted small" style="margin:10px 0 12px">It tunes itself as you use it: it learns your handwriting from the lines you count, leans on the areas you miss, and gives the rule first on anything you missed twice or marked confusing. For fixes and new explanations, copy this report and paste it into your chat with Claude; the changes come back as an update that installs itself.</p><p class="small">${state.reports.length} report${state.reports.length===1?'':'s'} · ${Object.values(state.exposures).filter(e=>(e.lapses||0)>=2).length} rules missed twice or more</p><div class="actions" style="margin-top:12px">${button('copy-report','Copy report for Claude','primary sm')}${button('download-report','Download it','ghost sm')}</div></div>
  <div class="panel"><h3>Memory hooks</h3><p class="muted small" style="margin:10px 0 14px">Turn the Rebirth Island memory hooks on or off everywhere: under each answer, in the results and in the notebook.</p><div class="actions"><button class="btn sm ${memOn()?'primary':'ghost'}" data-memory="on">On</button><button class="btn sm ${memOn()?'ghost':'primary'}" data-memory="off">Off</button></div></div>
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
- <div class="panel"><h3>Application information</h3><p class="muted small">Version 2.5 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
+ <div class="panel"><h3>Application information</h3><p class="muted small">Version 2.6 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
  <div class="notice warn" style="margin-top:15px">Regulatory requirements change. Always confirm official NMLS and CFPB requirements before relying on legal statements in the study bank. This is not an official exam or verified pass predictor.</div>`}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
 function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? Its unanswered questions will stay marked as seen.'))return}
@@ -1064,7 +1101,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261013061217-b651c192',OPENED=Date.now();
+const BUILD='20261013062228-5f5f2b3b',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -1082,7 +1119,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 if(location.protocol==='file:'){window.__pageCard=pageCard;window.__fit=fitPages}
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,render:()=>render()};
 
 </script>
 </body>
