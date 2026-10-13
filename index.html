@@ -258,7 +258,7 @@ function doubleNegative(p){
 }
 const WITH_TWISTS=[];for(const q of data.concat(BANK.Q.map(fromBank))){WITH_TWISTS.push(q);const d=q.isMath?'':doubleNegative(q.prompt);if(d)WITH_TWISTS.push({...q,id:q.id+'n',prompt:d,level:Math.max(2,q.level)})}
 const QUESTIONS=Object.freeze(WITH_TWISTS.map(q=>Object.freeze({...q,isStmt:STMT_RE.test(q.prompt),choices:Object.freeze(q.choices.slice()),choiceReasons:Object.freeze(q.choiceReasons.slice()),steps:Object.freeze((q.steps||[]).slice())})));
-const CATEGORIES=Object.freeze({FED:{name:'Federal Laws',weight:24},USC:{name:'Uniform State',weight:11},GMK:{name:'Mortgage Knowledge',weight:20},ORIG:{name:'Origination',weight:27},ETH:{name:'Ethics',weight:18}});
+const CATEGORIES=Object.freeze({FED:{name:'Federal Mortgage-Related Laws',weight:24},USC:{name:'Uniform State Content',weight:11},GMK:{name:'General Mortgage Knowledge',weight:20},ORIG:{name:'Mortgage Loan Origination Activities',weight:27},ETH:{name:'Ethics',weight:18}});   // the NMLS outline's own names
 const EXAM_QUOTA=Object.freeze({FED:29,USC:13,GMK:24,ORIG:32,ETH:22});      // 120 questions in the outline's proportions
 const MODES=Object.freeze(['adaptive','fresh','review']);
 const DIFFICULTIES=Object.freeze(['test-day','mixed','impossible']);
@@ -713,8 +713,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='3.0';
+const APP_VERSION='3.1';
 const WHATS_NEW=[
+ 'Topic now shows the exam outline section and its share of the test, like Federal Mortgage-Related Laws (24%).',
  'Simple notes: Topic, Question, Answer, Why it\'s right, and Why it\'s wrong when you picked wrong. Nothing else.',
  'Memory hooks, exam triggers, the rule and twist lists, print settings, and the notebook page drawing are gone.',
  'Practice questions come first. Don\'t try to memorize everything; understand why.',
@@ -929,7 +930,8 @@ function buildReport(){
 }
 // the note, the same everywhere: Topic, Question, Answer, Why it's right, and Why it's wrong only when you picked a wrong answer
 const FALSE_PREFIX=/^The false statement, corrected: /;
-function topicName(q){return speller()(q.topic||'').replace(/^The /,'').replace(/\) \((Regulation [A-Z])\)/,'), $1')}
+// the topic is the exam outline's own section and its share of the test, e.g. Federal Mortgage-Related Laws (24%)
+function topicName(q){const c=CATEGORIES[q.category];return c?`${c.name} (${c.weight}%)`:(q.topic||'')}
 function noteParts(q,perm,pick){
  perm=perm||[0,1,2,3];const sp=speller(),L=o=>letterOf(perm,o);
  const question=sp(q.prompt),answer=`${L(q.correct)}. ${sp(q.choices[q.correct])}`,why=q.why?sp(q.why):'';
@@ -1007,7 +1009,7 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="sched">${(state.plan.off||[]).slice().sort().map(d=>`<span class="chip">${HTML(fmtDay(parseDay(d)))} <button class="linkish" data-off-del="${HTML(d)}" aria-label="Remove ${HTML(d)}">✕</button></span>`).join('')||'<span class="small muted">No days off set.</span>'}</div></div>
  <div class="panel"><h3>Help the app evolve</h3><p class="muted small" style="margin:10px 0 12px">It tunes itself as you use it: it learns your handwriting from the lines you count, leans on the areas you miss, and gives the rule first on anything you missed twice or marked confusing. For fixes and new explanations, copy this report and paste it into your chat with Claude; the changes come back as an update that installs itself.</p><p class="small">${state.reports.length} report${state.reports.length===1?'':'s'} · ${Object.values(state.exposures).filter(e=>(e.lapses||0)>=2).length} rules missed twice or more</p><div class="actions" style="margin-top:12px">${button('copy-report','Copy report for Claude','primary sm')}${button('download-report','Download it','ghost sm')}</div></div>
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
- <div class="panel"><h3>Application information</h3><p class="muted small">Version 3.0 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
+ <div class="panel"><h3>Application information</h3><p class="muted small">Version 3.1 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
  <div class="notice warn" style="margin-top:15px">Regulatory requirements change. Always confirm official NMLS and CFPB requirements before relying on legal statements in the study bank. This is not an official exam or verified pass predictor.</div>`}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
 function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? Its unanswered questions will stay marked as seen.'))return}
@@ -1129,7 +1131,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261013072305-4d3062d3',OPENED=Date.now();
+const BUILD='20261013074148-45da12a7',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
