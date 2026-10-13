@@ -99,6 +99,8 @@
 .note-card{margin-top:10px}.note-card summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;list-style:none}
 .note-card summary::-webkit-details-marker{display:none}.note-card[open] summary{margin-bottom:10px}
 .why-wrong{margin:2px 0 0;padding:0;list-style:none;display:grid;gap:8px}.why-wrong li{font-size:.87rem;line-height:1.5;color:var(--text)}.expl-row .why-wrong li b{display:inline;font-size:inherit;text-transform:none;letter-spacing:0;margin:0;color:#e5c1fa}.why-wrong li em{font-style:normal;color:#ff9db7}.why-wrong li span{color:#ffc6d4}.why-wrong li.mine{border-left:3px solid #ff9db7;padding-left:8px}
+
+.flag-mark{color:#ff9db7}
 </style>
 </head>
 <body>
@@ -716,8 +718,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='3.2';
+const APP_VERSION='3.3';
 const WHATS_NEW=[
+ 'Notes has a Flagged tab, first in line. Every question you flag lands there, even one you skipped, and flagged notes sit at the top of every list.',
  'New setting, Explanations: Detailed adds a short reason each wrong answer is wrong, every time, even when you get it right. Simple stays the default.',
  'Topic now shows the exam outline section and its share of the test, like Federal Mortgage-Related Laws (24%).',
  'Simple notes: Topic, Question, Answer, Why it\'s right, and Why it\'s wrong when you picked wrong. Nothing else.',
@@ -930,7 +933,7 @@ function buildReport(){
  return [`SAFE MLO Master report · version ${APP_VERSION} · ${new Date().toISOString().slice(0,10)}`,
   `Readiness: ${R.status==='collecting'?'collecting':R.score+'% ('+R.status+')'} · rules answered ${m.answered} · fresh left ${m.fresh} · first-try accuracy ${m.firstAccuracy??'none'}%`,
   `Recent by area: ${areas}`,
-  `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missed.length}):`,...(missed.length?missed:['- none']),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
+  `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missed.length}):`,...(missed.length?missed:['- none']),'',`Flagged questions (${state.notes.filter(n=>n.flagged).length}):`,...(state.notes.filter(n=>n.flagged).slice(-40).map(n=>{const q=QMAP.get(n.qid);return `- ${n.qid}${q?` | ${q.prompt.slice(0,110)}`:''}${n.written?' (written)':''}`}).concat(state.notes.some(n=>n.flagged)?[]:['- none'])),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
 }
 // the note, the same everywhere: Topic, Question, Answer, Why it's right, and Why it's wrong only when you picked a wrong answer
 const FALSE_PREFIX=/^The false statement, corrected: /;
@@ -943,7 +946,8 @@ function wrongReason(q,o,sp,mine){
  if(r.startsWith(CORR))return 'False. The truth: '+wrongNote(q,o,sp).replace(/^False\. Truth: /,'');
  if(/^True as written/.test(r))return mine?'This one is true, so it isn\'t the false one the question asks for.':'True.';
  if(r===GEN_NOTE||/^It says ".*", (but the answer is ".*"|which is not what the rule says)\.$/.test(r))return mine?'Not what the rule says; see why it\'s right.':'';   // nothing to add beyond the answer
- return sp(r);
+ const c=(q.choices[o]||'').toLowerCase(),echo=c&&r.toLowerCase().startsWith(c+':')?r.slice(c.length+1).trim():r;   // "X: what X is" after "X —" would say X twice
+ return sp(echo.charAt(0).toUpperCase()+echo.slice(1));
 }
 function noteParts(q,perm,pick){
  perm=perm||[0,1,2,3];const sp=speller(),L=o=>letterOf(perm,o);
@@ -1000,21 +1004,22 @@ function renderAnalytics(){const m=metricSummary(QUESTIONS,state.exposures,state
 function noteView(n){
  if(!n.qid)return {title:n.title||'My Study Note',text:n.content||'',manual:true,html:`<p style="white-space:pre-wrap">${HTML(n.content||'')}</p>`};
  const q=QMAP.get(n.qid);if(!q)return {title:'Removed question',text:'',html:''};
- return {title:`${n.pick===q.correct?'✓':'✗'} ${topicName(q)}`,text:noteText(q,n.perm,n.pick),html:`<div class="explanation">${noteHTML(q,n.perm,n.pick)}</div>`,manual:false};
+ return {title:`${!Number.isInteger(n.pick)?'Not answered ·':n.pick===q.correct?'✓':'✗'} ${topicName(q)}`,text:noteText(q,n.perm,n.pick),html:`<div class="explanation">${noteHTML(q,n.perm,n.pick)}</div>`,manual:false};
 }
-function addNote(q,pick,perm,sessionId){
- state.notes.push({id:newId(),qid:q.id,pick,perm:perm||null,session:sessionId,at:new Date().toISOString(),written:false});
- while(state.notes.length>NOTE_MAX){const k=state.notes.findIndex(n=>n.written);state.notes.splice(k>=0?k:0,1)}
+function addNote(q,pick,perm,sessionId,flagged){
+ state.notes.push({id:newId(),qid:q.id,pick,perm:perm||null,session:sessionId,at:new Date().toISOString(),written:false,flagged:!!flagged});
+ // when the list is full, a flagged note is the last to go
+ while(state.notes.length>NOTE_MAX){let k=state.notes.findIndex(n=>n.written&&!n.flagged);if(k<0)k=state.notes.findIndex(n=>!n.flagged);state.notes.splice(k>=0?k:0,1)}
 }
-function filteredNotes(){const f=state.notesView.filter;return state.notes.filter(n=>f==='all'||(f==='done'?n.written:!n.written))}
-function renderNotebook(){const v=state.notesView,notes=filteredNotes().slice().reverse(),list=notes.slice(0,v.list);
- const todo=state.notes.filter(x=>!x.written).length,done=state.notes.length-todo;
+function filteredNotes(){const f=state.notesView.filter;return state.notes.filter(n=>f==='all'||(f==='flag'?n.flagged:f==='done'?n.written:!n.written))}
+function renderNotebook(){const v=state.notesView,notes=filteredNotes().slice().reverse().sort((a,b)=>(b.flagged?1:0)-(a.flagged?1:0)),list=notes.slice(0,v.list);   // flagged first, then newest
+ const todo=state.notes.filter(x=>!x.written).length,done=state.notes.length-todo,flagged=state.notes.filter(x=>x.flagged).length;
  const chip=(k,l)=>`<button class="btn sm ${v.filter===k?'primary':'ghost'}" data-nfilter="${k}">${l}</button>`;
- return `${sectionTitle('Your Notes','Every question you answer, newest first: the topic, the question, the answer, why it is right, and why your pick was wrong when it was.')}
- <section class="section"><div class="section-head"><div class="actions">${chip('todo',`To write (${todo})`)}${chip('done',`Written (${done})`)}${chip('all',`All ${state.notes.length}`)}</div>${button('new-note','＋ Add a note','sm ghost')}</div>
- ${list.length?list.map(note=>{const w=noteView(note);return `<details class="panel note-card"${list.length<=3?' open':''}><summary><b>${HTML(w.title)}</b><span class="muted small">${note.at?new Date(note.at).toLocaleDateString():''}${note.written?' · written':''}</span></summary>${w.html}
-  <div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'Not written yet':'I wrote this one down'}</button>${w.manual?`<button class="btn sm" data-edit-note="${HTML(note.id)}">Edit</button>`:''}<button class="btn sm danger" data-delete-note="${HTML(note.id)}">Delete</button></div></details>`}).join('')+(notes.length>list.length?`<div class="actions" style="margin-top:12px">${button('more-list',`Show ${Math.min(20,notes.length-list.length)} more`,'sm ghost')}</div>`:'')
-  :`<div class="empty"><h3>${state.notes.length?'Nothing in this list':'No notes yet'}</h3><p>${state.notes.length?'Switch the filter to see the rest.':'Answer a practice question and its note lands here.'}</p></div>`}</section>`;
+ return `${sectionTitle('Your Notes','Every question you answer: the topic, the question, the answer, why it is right, and why your pick was wrong when it was. Questions you flag come first.')}
+ <section class="section"><div class="section-head"><div class="actions">${chip('flag',`⚑ Flagged (${flagged})`)}${chip('todo',`To write (${todo})`)}${chip('done',`Written (${done})`)}${chip('all',`All ${state.notes.length}`)}</div>${button('new-note','＋ Add a note','sm ghost')}</div>
+ ${list.length?list.map(note=>{const w=noteView(note);return `<details class="panel note-card"${list.length<=3?' open':''}><summary><b>${note.flagged?'<span class="flag-mark" aria-label="Flagged">⚑</span> ':''}${HTML(w.title)}</b><span class="muted small">${note.at?new Date(note.at).toLocaleDateString():''}${note.written?' · written':''}</span></summary>${w.html}
+  <div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'Not written yet':'I wrote this one down'}</button>${w.manual?'':`<button class="btn sm ${note.flagged?'primary':'ghost'}" data-nflag="${HTML(note.id)}" aria-pressed="${!!note.flagged}">${note.flagged?'⚑ Flagged':'⚐ Flag'}</button>`}${w.manual?`<button class="btn sm" data-edit-note="${HTML(note.id)}">Edit</button>`:''}<button class="btn sm danger" data-delete-note="${HTML(note.id)}">Delete</button></div></details>`}).join('')+(notes.length>list.length?`<div class="actions" style="margin-top:12px">${button('more-list',`Show ${Math.min(20,notes.length-list.length)} more`,'sm ghost')}</div>`:'')
+  :`<div class="empty"><h3>${v.filter==='flag'?'No flagged questions yet':state.notes.length?'Nothing in this list':'No notes yet'}</h3><p>${v.filter==='flag'?'Tap ⚐ Flag on any question, in practice or on an exam, and its note lands here first.':state.notes.length?'Switch the filter to see the rest.':'Answer a practice question and its note lands here.'}</p></div>`}</section>`;
 }
 function renderSettings(){return `${sectionTitle('Settings & Backup','Your work is stored locally on this device and browser. Export backups regularly.')}
  <div class="panel"><h3>Exam date and schedule</h3><p class="muted small" style="margin:10px 0 14px">Your countdown, daily goal, ready check (one week before) and the weekly full-length exams follow these. Days off have no goal; the other days carry it.</p><div class="field-grid"><label class="field">First day of your window<input type="date" data-plan="exam" value="${HTML(state.plan.exam)}"></label><label class="field">Last day of your window<input type="date" data-plan="last" value="${HTML(state.plan.last)}"></label>
@@ -1023,7 +1028,7 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="panel"><h3>Explanations</h3><p class="muted small" style="margin:10px 0 14px">Simple: why the answer is right, and why your pick was wrong when you miss. Detailed: also one short line on why each wrong answer is wrong, every time, even when you get it right.</p><div class="actions"><button class="btn sm ${detailedOn()?'ghost':'primary'}" data-explain="simple" aria-pressed="${!detailedOn()}">Simple</button><button class="btn sm ${detailedOn()?'primary':'ghost'}" data-explain="detailed" aria-pressed="${detailedOn()}">Detailed</button></div></div>
  <div class="panel"><h3>Help the app evolve</h3><p class="muted small" style="margin:10px 0 12px">It tunes itself as you use it: it learns your handwriting from the lines you count, leans on the areas you miss, and gives the rule first on anything you missed twice or marked confusing. For fixes and new explanations, copy this report and paste it into your chat with Claude; the changes come back as an update that installs itself.</p><p class="small">${state.reports.length} report${state.reports.length===1?'':'s'} · ${Object.values(state.exposures).filter(e=>(e.lapses||0)>=2).length} rules missed twice or more</p><div class="actions" style="margin-top:12px">${button('copy-report','Copy report for Claude','primary sm')}${button('download-report','Download it','ghost sm')}</div></div>
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
- <div class="panel"><h3>Application information</h3><p class="muted small">Version 3.2 · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
+ <div class="panel"><h3>Application information</h3><p class="muted small">Version ${APP_VERSION} · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
  <div class="notice warn" style="margin-top:15px">Regulatory requirements change. Always confirm official NMLS and CFPB requirements before relying on legal statements in the study bank. This is not an official exam or verified pass predictor.</div>`}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
 function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? Its unanswered questions will stay marked as seen.'))return}
@@ -1044,13 +1049,14 @@ function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family==
 function selectAnswer(index){const s=currentSession();if(!s)return;const q=QMAP.get(s.questions[s.cursor]);if(!q)return;
  if(s.type==='practice'&&s.revealed[q.id])return;
  if(s.type==='exam'){s.answers[q.id]=index}
- else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id)}
+ else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id))}
  persist();render();}
 function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect.`))return}
- if(s.type==='exam'){for(const id of s.questions){if(Number.isInteger(s.answers[id])){const q=QMAP.get(id);recordAttempt(q,s.answers[id],s);addNote(q,s.answers[id],s.perm[id],s.id)}}}
+ if(s.type==='exam'){for(const id of s.questions){if(Number.isInteger(s.answers[id])){const q=QMAP.get(id);recordAttempt(q,s.answers[id],s);addNote(q,s.answers[id],s.perm[id],s.id,s.flags.includes(id))}}}
+ for(const id of s.flags){const q=QMAP.get(id);if(q&&!state.notes.some(n=>n.session===s.id&&n.qid===id))addNote(q,Number.isInteger(s.answers[id])?s.answers[id]:null,s.perm[id],s.id,true)}   // flagged and skipped: still a note, so you can study it
  const r=scoreSession(s,QUESTIONS);
- state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{}}});
+ state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[]}});
  state.sessions=state.sessions.slice(-150);let kept=0;for(let i=state.sessions.length-1;i>=0;i--){if(state.sessions[i].detail&&++kept>DETAIL_KEEP)delete state.sessions[i].detail}
  state.active=null;state.lastResult=s.id;state.resultsFilter=r.correct===r.total&&!Object.values(s.unsure||{}).some(Boolean)?'all':'missed';state.route='results';persist();render();window.scrollTo(0,0);
 }
@@ -1067,6 +1073,7 @@ document.addEventListener('click',e=>{
  const choice=e.target.closest('[data-choice]');if(choice){selectAnswer(Number(choice.dataset.choice));return}
  const jump=e.target.closest('[data-jump]');if(jump&&state.active){state.active.cursor=Number(jump.dataset.jump);persist();render();return}
  const wr=e.target.closest('[data-written]');if(wr){const n=state.notes.find(x=>x.id===wr.dataset.written);if(n){n.written=!n.written;persist();render()}return}
+ const nfl=e.target.closest('[data-nflag]');if(nfl){const n=state.notes.find(x=>x.id===nfl.dataset.nflag);if(n){n.flagged=!n.flagged;const s=state.active;if(s&&n.session===s.id){s.flags=n.flagged?[...new Set([...s.flags,n.qid])]:s.flags.filter(x=>x!==n.qid)}persist();render()}return}
  const nf=e.target.closest('[data-nfilter]');if(nf){state.notesView={...state.notesView,filter:nf.dataset.nfilter,pages:10,list:20};persist();render();return}
  const rf=e.target.closest('[data-rfilter]');if(rf){state.resultsFilter=rf.dataset.rfilter;render();return}
  const rv=e.target.closest('[data-review]');if(rv){state.lastResult=rv.dataset.review;state.resultsFilter='missed';navigate('results');return}
@@ -1101,7 +1108,7 @@ document.addEventListener('click',e=>{
  case 'previous':if(s){s.cursor=Math.max(0,s.cursor-1);persist();render();window.scrollTo(0,0)}break;
  case 'check':if(s){s.carded=s.carded||{};s.carded[s.questions[s.cursor]]=true;persist();render();window.scrollTo(0,0)}break;
  case 'unsure':if(s){const id=s.questions[s.cursor];s.unsure=s.unsure||{};s.unsure[id]=!s.unsure[id];persist();render()}break;
- case 'flag':if(s){const id=s.questions[s.cursor];s.flags=s.flags.includes(id)?s.flags.filter(x=>x!==id):[...s.flags,id];persist();render()}break;
+ case 'flag':if(s){const id=s.questions[s.cursor],on=!s.flags.includes(id);s.flags=on?[...s.flags,id]:s.flags.filter(x=>x!==id);const n=state.notes.find(x=>x.session===s.id&&x.qid===id);if(n)n.flagged=on;persist();render();if(on)toast('Flagged. It goes to the top of your Notes.')}break;
  case 'end-session':finishSession();break;
  case 'leave-session':state.active=null;persist();render();break;
  case 'new-note':showNoteEditor(null);break;
@@ -1146,7 +1153,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261013080218-29c1f1a1',OPENED=Date.now();
+const BUILD='20261013120304-d377ab6f',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
