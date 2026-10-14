@@ -718,8 +718,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='3.3';
+const APP_VERSION='3.4';
 const WHATS_NEW=[
+ 'Reset notes: a button at the bottom of Notes clears every note for a fresh start. Your scores, readiness and progress stay.',
  'Notes has a Flagged tab, first in line. Every question you flag lands there, even one you skipped, and flagged notes sit at the top of every list.',
  'New setting, Explanations: Detailed adds a short reason each wrong answer is wrong, every time, even when you get it right. Simple stays the default.',
  'Topic now shows the exam outline section and its share of the test, like Federal Mortgage-Related Laws (24%).',
@@ -1019,7 +1020,8 @@ function renderNotebook(){const v=state.notesView,notes=filteredNotes().slice().
  <section class="section"><div class="section-head"><div class="actions">${chip('flag',`⚑ Flagged (${flagged})`)}${chip('todo',`To write (${todo})`)}${chip('done',`Written (${done})`)}${chip('all',`All ${state.notes.length}`)}</div>${button('new-note','＋ Add a note','sm ghost')}</div>
  ${list.length?list.map(note=>{const w=noteView(note);return `<details class="panel note-card"${list.length<=3?' open':''}><summary><b>${note.flagged?'<span class="flag-mark" aria-label="Flagged">⚑</span> ':''}${HTML(w.title)}</b><span class="muted small">${note.at?new Date(note.at).toLocaleDateString():''}${note.written?' · written':''}</span></summary>${w.html}
   <div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'Not written yet':'I wrote this one down'}</button>${w.manual?'':`<button class="btn sm ${note.flagged?'primary':'ghost'}" data-nflag="${HTML(note.id)}" aria-pressed="${!!note.flagged}">${note.flagged?'⚑ Flagged':'⚐ Flag'}</button>`}${w.manual?`<button class="btn sm" data-edit-note="${HTML(note.id)}">Edit</button>`:''}<button class="btn sm danger" data-delete-note="${HTML(note.id)}">Delete</button></div></details>`}).join('')+(notes.length>list.length?`<div class="actions" style="margin-top:12px">${button('more-list',`Show ${Math.min(20,notes.length-list.length)} more`,'sm ghost')}</div>`:'')
-  :`<div class="empty"><h3>${v.filter==='flag'?'No flagged questions yet':state.notes.length?'Nothing in this list':'No notes yet'}</h3><p>${v.filter==='flag'?'Tap ⚐ Flag on any question, in practice or on an exam, and its note lands here first.':state.notes.length?'Switch the filter to see the rest.':'Answer a practice question and its note lands here.'}</p></div>`}</section>`;
+  :`<div class="empty"><h3>${v.filter==='flag'?'No flagged questions yet':state.notes.length?'Nothing in this list':'No notes yet'}</h3><p>${v.filter==='flag'?'Tap ⚐ Flag on any question, in practice or on an exam, and its note lands here first.':state.notes.length?'Switch the filter to see the rest.':'Answer a practice question and its note lands here.'}</p></div>`}</section>
+ ${state.notes.length?`<section class="section"><div class="panel"><h3>Start fresh</h3><p class="muted small" style="margin:8px 0 12px">Clears all ${state.notes.length} notes, flagged and written ones too. Your scores, readiness and progress stay. New answers start a new list.</p>${button('reset-notes','Reset notes','danger sm')}</div></section>`:''}`;
 }
 function renderSettings(){return `${sectionTitle('Settings & Backup','Your work is stored locally on this device and browser. Export backups regularly.')}
  <div class="panel"><h3>Exam date and schedule</h3><p class="muted small" style="margin:10px 0 14px">Your countdown, daily goal, ready check (one week before) and the weekly full-length exams follow these. Days off have no goal; the other days carry it.</p><div class="field-grid"><label class="field">First day of your window<input type="date" data-plan="exam" value="${HTML(state.plan.exam)}"></label><label class="field">Last day of your window<input type="date" data-plan="last" value="${HTML(state.plan.last)}"></label>
@@ -1112,6 +1114,7 @@ document.addEventListener('click',e=>{
  case 'end-session':finishSession();break;
  case 'leave-session':state.active=null;persist();render();break;
  case 'new-note':showNoteEditor(null);break;
+ case 'reset-notes':{const n=state.notes.length;if(!n){toast('No notes to reset.');break}if(!confirm(`Delete all ${n} notes, flagged ones too? Your scores and progress stay. This can't be undone.`))break;state.notes=[];state.notesView={...state.notesView,filter:'flag',list:20};persist();render();window.scrollTo(0,0);toast('Notes reset. Your next answers start a fresh list.');break}
  case 'more-list':state.notesView.list+=20;persist();render();break;
  case 'more-pages':state.notesView.pages+=10;persist();render();break;
  case 'book-a5':state.notebook={...A5_BOOK};persist();render();break;
@@ -1153,7 +1156,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261013120304-d377ab6f',OPENED=Date.now();
+const BUILD='20261014034535-88bf5eae',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
