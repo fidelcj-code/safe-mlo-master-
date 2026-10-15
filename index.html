@@ -722,8 +722,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='3.5';
+const APP_VERSION='3.6';
 const WHATS_NEW=[
+ 'The report for Claude now shows how you do on each way of asking (direct, find the true one, find the false one, EXCEPT, double negative), and counts the rules you keep missing correctly.',
  'In the Why it\'s wrong notes, the words and numbers that make a statement false now stand out in bold.',
  'The report for Claude now shows what you picked on the rules you keep missing and on your flagged questions, so a hard question can be told apart from a wrong one.',
  'Reset notes: a button at the bottom of Notes clears every note for a fresh start. Your scores, readiness and progress stay.',
@@ -938,13 +939,19 @@ function buildReport(){
  const clip=(t,n)=>{t=String(t||'');return t.length>n?t.slice(0,n-1)+'…':t};
  // what you picked each time, so a wrong pick can be told apart from a wrong question
  const picks=f=>state.attempts.filter(a=>a.family===f&&!a.correct).slice(-4).map(a=>{const q=QMAP.get(a.questionId);return q&&Number.isInteger(a.selected)?`    · ${a.questionId} picked "${clip(q.choices[a.selected],90)}"`:''}).filter(Boolean);
- const missed=Object.entries(state.exposures).filter(([,e])=>(e.lapses||0)>=2).sort((a,b)=>b[1].lapses-a[1].lapses).slice(0,30).flatMap(([f,e])=>{const q=firstOf(f);return [`- ${f} (${q?.code||'?'}) missed ${e.lapses}x${e.lastCorrect?', right last time':''}: ${q?q.definition.replace(/^The false statement, corrected: /,'').slice(0,120):''}`,...picks(f)]});
+ const missedRules=Object.entries(state.exposures).filter(([,e])=>(e.lapses||0)>=2);
+ const missed=missedRules.sort((a,b)=>b[1].lapses-a[1].lapses).slice(0,30).flatMap(([f,e])=>{const q=firstOf(f);return [`- ${f} (${q?.code||'?'}) missed ${e.lapses}x${e.lastCorrect?', right last time':''}: ${q?q.definition.replace(/^The false statement, corrected: /,'').slice(0,120):''}`,...picks(f)]});
+ // how each way of asking is going: a direct question, find the true one, find the false one, EXCEPT, a double negative
+ const styleOf=q=>{const r=readAs(q.prompt);return /^Two negatives/.test(r)?'Double negative':/^EXCEPT/.test(r)?'EXCEPT':/^(Three are true|Find the false|NOT )/.test(r)?'Find the FALSE one':(/^Three are wrong/.test(r)||q.isStmt)?'Find the TRUE one':'Direct'};
+ const sty={};for(const a of state.attempts){const q=QMAP.get(a.questionId);if(!q)continue;const k=styleOf(q);(sty[k]=sty[k]||{n:0,ok:0}).n++;if(a.correct)sty[k].ok++}
+ const styles=['Direct','Find the TRUE one','Find the FALSE one','EXCEPT','Double negative'].filter(k=>sty[k]).map(k=>`${k} ${Math.round(sty[k].ok/sty[k].n*100)}% of ${sty[k].n}`).join(' · ')||'none yet';
  const flagged=state.notes.filter(n=>n.flagged).slice(-40).map(n=>{const q=QMAP.get(n.qid);if(!q)return `- ${n.qid}`;const res=!Number.isInteger(n.pick)?'skipped':n.pick===q.correct?'right':`wrong, picked "${clip(q.choices[n.pick],70)}"`;return `- ${n.qid} [${res}] ${clip(q.prompt,100)}${n.written?' (written)':''}`});
  const reps=state.reports.slice(-50).map(r=>{const q=QMAP.get(r.qid);return `- ${r.qid} ${r.kind}${r.note?`: "${r.note}"`:''} | ${q?q.prompt.slice(0,110):''}`});
  return [`SAFE MLO Master report · version ${APP_VERSION} · ${new Date().toISOString().slice(0,10)}`,
   `Readiness: ${R.status==='collecting'?'collecting':R.score+'% ('+R.status+')'} · rules answered ${m.answered} · fresh left ${m.fresh} · first-try accuracy ${m.firstAccuracy??'none'}%`,
   `Recent by area: ${areas}`,
-  `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missed.length}):`,...(missed.length?missed:['- none']),'',`Flagged questions (${state.notes.filter(n=>n.flagged).length}):`,...(flagged.length?flagged:['- none']),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
+  `By question style: ${styles}`,
+  `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missedRules.length}):`,...(missed.length?missed:['- none']),'',`Flagged questions (${state.notes.filter(n=>n.flagged).length}):`,...(flagged.length?flagged:['- none']),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
 }
 // the note, the same everywhere: Topic, Question, Answer, Why it's right, and Why it's wrong only when you picked a wrong answer
 const FALSE_PREFIX=/^The false statement, corrected: /;
@@ -1166,7 +1173,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261014221459-29860274',OPENED=Date.now();
+const BUILD='20261015000354-c9d7b37c',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
