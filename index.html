@@ -102,6 +102,7 @@
 
 .flag-mark{color:#ff9db7}
 .expl-row b.flip,.expl-row .why-wrong li b.flip{display:inline;font-size:inherit;text-transform:none;letter-spacing:0;margin:0;color:#fff;font-weight:800;background:rgba(255,157,183,.2);border-radius:4px;padding:0 3px}
+.why-more{margin-top:8px}.why-more>summary{cursor:pointer;color:#eda4e7;font-size:.85rem;font-weight:700;padding:6px 0;list-style:none}.why-more>summary::-webkit-details-marker{display:none}.why-more>summary::before{content:'▸ '}.why-more[open]>summary::before{content:'▾ '}
 </style>
 </head>
 <body>
@@ -722,8 +723,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='3.6';
+const APP_VERSION='3.7';
 const WHATS_NEW=[
+ 'New Explanations choice, Simple & Detailed: you see the Simple explanation, and one tap on "Why the other answers are wrong" opens the rest. Settings, Explanations.',
  'The report for Claude now shows how you do on each way of asking (direct, find the true one, find the false one, EXCEPT, double negative), and counts the rules you keep missing correctly.',
  'In the Why it\'s wrong notes, the words and numbers that make a statement false now stand out in bold.',
  'The report for Claude now shows what you picked on the rules you keep missing and on your flagged questions, so a hard question can be told apart from a wrong one.',
@@ -958,7 +960,8 @@ const FALSE_PREFIX=/^The false statement, corrected: /;
 // the topic is the exam outline's own section and its share of the test, e.g. Federal Mortgage-Related Laws (24%)
 function topicName(q){const c=CATEGORIES[q.category];return c?`${c.name} (${c.weight}%)`:(q.topic||'')}
 // Simple: why it's right, and why your pick was wrong when it was. Detailed: also why each other answer is wrong, short, whenever there is a real reason to give
-const detailedOn=()=>state.settings.explain==='detailed';
+const EXPLAIN={simple:'Simple',hybrid:'Simple & Detailed',detailed:'Detailed'};
+const explainMode=()=>EXPLAIN[state.settings.explain]?state.settings.explain:'simple',detailedOn=()=>explainMode()==='detailed';
 function wrongReason(q,o,sp,mine){
  const r=q.choiceReasons[o]||'';
  if(r.startsWith(CORR))return 'False. The truth: '+wrongNote(q,o,sp).replace(/^False\. Truth: /,'');
@@ -974,7 +977,7 @@ function noteParts(q,perm,pick){
  const right=FALSE_PREFIX.test(q.definition)?`This is the false statement. The truth: ${sp(q.definition.replace(FALSE_PREFIX,''))}${why?' '+why:''}`:(why||sp(q.definition));
  const missed=Number.isInteger(pick)&&pick!==q.correct,wrongs=[];
  for(const o of perm){if(o===q.correct)continue;const mine=o===pick;
-  if(!mine&&!detailedOn())continue;
+  if(!mine&&explainMode()==='simple')continue;
   const reason=wrongReason(q,o,sp,mine);if(!reason)continue;
   wrongs.push({letter:L(o),choice:sp(q.choices[o]),reason,mine})}
  const wrong=missed?(()=>{const w=wrongs.find(x=>x.mine);return w?`You picked ${w.letter}. ${w.choice} — ${w.reason}`:''})():'';
@@ -982,7 +985,10 @@ function noteParts(q,perm,pick){
 }
 function noteHTML(q,perm,pick){
  const N=noteParts(q,perm,pick),row=(k,v,cls='')=>`<div class="expl-row${cls}"><b>${k}</b>${v}</div>`;
- const wrongBody=detailedOn()?(N.wrongs.length?`<ul class="why-wrong">${N.wrongs.map(w=>`<li${w.mine?' class="mine"':''}><b>${HTML(w.letter)}.</b> ${HTML(w.choice)}${w.mine?' <em>(your pick)</em>':''} — <span>${flipHTML(w.reason)}</span></li>`).join('')}</ul>`:''):(N.wrong?`<p>${flipHTML(N.wrong)}</p>`:'');
+ const li=w=>`<li${w.mine?' class="mine"':''}><b>${HTML(w.letter)}.</b> ${HTML(w.choice)}${w.mine?' <em>(your pick)</em>':''} — <span>${flipHTML(w.reason)}</span></li>`,mode=explainMode(),rest=N.wrongs.filter(w=>!w.mine);
+ // Simple & Detailed: the Simple part shows; the rest of Detailed is one tap away
+ const wrongBody=mode==='detailed'?(N.wrongs.length?`<ul class="why-wrong">${N.wrongs.map(li).join('')}</ul>`:''):
+  (N.wrong?`<p>${flipHTML(N.wrong)}</p>`:'')+(mode==='hybrid'&&rest.length?`<details class="why-more"><summary>${N.wrong?'Why the other answers are wrong':'Why the wrong answers are wrong'}</summary><ul class="why-wrong">${rest.map(li).join('')}</ul></details>`:'');
  return row('Topic',`<p>${HTML(N.topic)}</p>`)+row('Question',`<p>${HTML(N.question)}</p>${N.readAs?`<p class="read-as">${HTML(N.readAs)}</p>`:''}`)+row('Answer',`<p>${HTML(N.answer)}</p>`,' good-row')+
   row('Why it\'s right',`<p>${HTML(N.right)}</p>${N.steps.length?`<ol class="steps">${N.steps.map(x=>`<li>${HTML(x)}</li>`).join('')}</ol>`:''}`)+
   (wrongBody?row('Why it\'s wrong',wrongBody,' bad-row'):'')+
@@ -990,7 +996,7 @@ function noteHTML(q,perm,pick){
 }
 function noteText(q,perm,pick){
  const N=noteParts(q,perm,pick);
- const wrong=detailedOn()?(N.wrongs.length?['Why it\'s wrong:',...N.wrongs.map(w=>`  ${w.letter}. ${w.choice}${w.mine?' (your pick)':''} — ${w.reason}`)]:[]):(N.wrong?[`Why it's wrong: ${N.wrong}`]:[]);
+ const wrong=explainMode()!=='simple'?(N.wrongs.length?['Why it\'s wrong:',...N.wrongs.map(w=>`  ${w.letter}. ${w.choice}${w.mine?' (your pick)':''} — ${w.reason}`)]:[]):(N.wrong?[`Why it's wrong: ${N.wrong}`]:[]);
  return flipText([`Topic: ${N.topic}`,`Question: ${N.question}${N.readAs?` (${N.readAs})`:''}`,`Answer: ${N.answer}`,`Why it's right: ${N.right}${N.steps.length?'\n'+N.steps.map((x,i)=>`  ${i+1}. ${x}`).join('\n'):''}`,...wrong].join('\n'));
 }
 const explanationHTML=noteHTML;
@@ -1044,7 +1050,7 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="panel"><h3>Exam date and schedule</h3><p class="muted small" style="margin:10px 0 14px">Your countdown, daily goal, ready check (one week before) and the weekly full-length exams follow these. Days off have no goal; the other days carry it.</p><div class="field-grid"><label class="field">First day of your window<input type="date" data-plan="exam" value="${HTML(state.plan.exam)}"></label><label class="field">Last day of your window<input type="date" data-plan="last" value="${HTML(state.plan.last)}"></label>
  <label class="field">Full-length exam day<select data-plan="fullDay">${DAYS.map((d,i)=>`<option value="${i}" ${+state.plan.fullDay===i?'selected':''}>${d}</option>`).join('')}</select></label><label class="field">Add a day off (travel, no study)<input type="date" data-off-add></label></div>
  <div class="sched">${(state.plan.off||[]).slice().sort().map(d=>`<span class="chip">${HTML(fmtDay(parseDay(d)))} <button class="linkish" data-off-del="${HTML(d)}" aria-label="Remove ${HTML(d)}">✕</button></span>`).join('')||'<span class="small muted">No days off set.</span>'}</div></div>
- <div class="panel"><h3>Explanations</h3><p class="muted small" style="margin:10px 0 14px">Simple: why the answer is right, and why your pick was wrong when you miss. Detailed: also one short line on why each wrong answer is wrong, every time, even when you get it right.</p><div class="actions"><button class="btn sm ${detailedOn()?'ghost':'primary'}" data-explain="simple" aria-pressed="${!detailedOn()}">Simple</button><button class="btn sm ${detailedOn()?'primary':'ghost'}" data-explain="detailed" aria-pressed="${detailedOn()}">Detailed</button></div></div>
+ <div class="panel"><h3>Explanations</h3><p class="muted small" style="margin:10px 0 14px">Simple: why the answer is right, and why your pick was wrong when you miss. Simple &amp; Detailed: the Simple explanation, and one tap opens why each other answer is wrong. Detailed: why each wrong answer is wrong, every time, all shown.</p><div class="actions">${Object.entries(EXPLAIN).map(([k,l])=>`<button class="btn sm ${explainMode()===k?'primary':'ghost'}" data-explain="${k}" aria-pressed="${explainMode()===k}">${HTML(l)}</button>`).join('')}</div></div>
  <div class="panel"><h3>Help the app evolve</h3><p class="muted small" style="margin:10px 0 12px">It tunes itself as you use it: it learns your handwriting from the lines you count, leans on the areas you miss, and gives the rule first on anything you missed twice or marked confusing. For fixes and new explanations, copy this report and paste it into your chat with Claude; the changes come back as an update that installs itself.</p><p class="small">${state.reports.length} report${state.reports.length===1?'':'s'} · ${Object.values(state.exposures).filter(e=>(e.lapses||0)>=2).length} rules missed twice or more</p><div class="actions" style="margin-top:12px">${button('copy-report','Copy report for Claude','primary sm')}${button('download-report','Download it','ghost sm')}</div></div>
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
  <div class="panel"><h3>Application information</h3><p class="muted small">Version ${APP_VERSION} · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
@@ -1112,7 +1118,7 @@ document.addEventListener('click',e=>{
    state.reports.push({qid,kind:k,note:note.trim().slice(0,400),at:new Date().toISOString()});state.reports=state.reports.slice(-300);
    if(k==='confusing'&&q){(state.exposures[q.family]=state.exposures[q.family]||{seenIds:[qid],exposureCount:1,lapses:0}).confusing=true}}
   persist();render();if(had<0)toast(k==='confusing'?'Saved. This rule comes back with the rule first.':'Saved for your report to Claude.');return}
- const ex=e.target.closest('[data-explain]');if(ex){state.settings.explain=ex.dataset.explain==='detailed'?'detailed':'simple';persist();render();toast(detailedOn()?'Detailed explanations on.':'Simple explanations on.');return}
+ const ex=e.target.closest('[data-explain]');if(ex){state.settings.explain=EXPLAIN[ex.dataset.explain]?ex.dataset.explain:'simple';persist();render();toast(`${EXPLAIN[explainMode()]} explanations on.`);return}
  const od=e.target.closest('[data-off-del]');if(od){state.plan.off=(state.plan.off||[]).filter(x=>x!==od.dataset.offDel);persist();render();return}
  const mem=e.target.closest('[data-memory]');if(mem){state.settings.memory=mem.dataset.memory==='off'?'off':'on';persist();render();return}
  const edit=e.target.closest('[data-edit-note]');if(edit){showNoteEditor(edit.dataset.editNote);return}
@@ -1173,7 +1179,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261015000354-c9d7b37c',OPENED=Date.now();
+const BUILD='20261015013717-8cc6e927',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
