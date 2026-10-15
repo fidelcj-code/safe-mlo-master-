@@ -597,6 +597,33 @@ function capsFlip(parts){
 }
 // the changed words travel between two marks: bold on screen, plain capitals in copied text
 const FLIP_A='\u0001',FLIP_B='\u0002',flipText=s=>String(s).replace(/[\u0001\u0002]/g,''),flipHTML=s=>HTML(s).replace(/\u0001/g,'<b class="flip">').replace(/\u0002/g,'</b>');
+// Minimal Detailed: what a twisted statement got wrong, as "It's 60 days, not 90 days; one year, not six months."
+// only when the twist is a few short swaps; a full rewrite keeps the whole truth
+function swaps(opt,truth){
+ const a=opt.split(/\s+/),b=truth.split(/\s+/),nw=w=>w.toLowerCase().replace(/[.,;:!?]+$/,''),A=a.map(nw),B=b.map(nw),n=a.length,m=b.length;
+ if(!n||!m||n*m>40000)return '';
+ const L=Array.from({length:n+1},()=>new Uint16Array(m+1));
+ for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)L[i][j]=A[i]===B[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+ const ch=[];let i=0,j=0,cur=null;
+ while(i<n||j<m){
+  if(i<n&&j<m&&A[i]===B[j]){if(cur){cur.next=b[j];cur.next2=b[j+1]||'';ch.push(cur);cur=null}i++;j++}
+  else if(j<m&&(i>=n||L[i][j+1]>=L[i+1][j])){(cur=cur||{a:[],b:[]}).b.push(b[j]);j++}
+  else{(cur=cur||{a:[],b:[]}).a.push(a[i]);i++}
+ }
+ if(cur)ch.push(cur);
+ if(!ch.length||ch.length>2||ch.some(c=>!c.a.length||!c.b.length||c.b.length>3||c.a.length>3))return '';
+ const cl=w=>w.replace(/[.,;:!?]+$/,''),num=w=>/^(?:\$?[\d,.]+%?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|forty-five|sixty|ninety)$/i.test(cl(w)),UNIT=/^(?:days?|business|calendar|months?|years?|hours?|percent|percentage|points?|weeks?|units?|times)$/i;
+ const j2=c=>c.map(cl).join(' ');
+ if(ch.length===2&&j2(ch[0].a).toLowerCase()===j2(ch[1].b).toLowerCase()&&j2(ch[0].b).toLowerCase()===j2(ch[1].a).toLowerCase())return "It's backwards: "+FLIP_A+j2(ch[0].b)+FLIP_B+' and '+FLIP_A+j2(ch[0].a)+FLIP_B+' are switched.';
+ return "It's "+ch.map(c=>{let r=c.b.map(cl).join(' '),x=c.a.map(cl).join(' ');if(num(c.b[c.b.length-1])&&c.next&&UNIT.test(cl(c.next))){let nx=cl(c.next);if(/^(?:business|calendar)$/i.test(nx)&&c.next2)nx+=' '+cl(c.next2);r+=' '+nx;x+=' '+nx}return FLIP_A+r+FLIP_B+', not '+x}).join('; ')+'.';
+}
+function trimShared(opt,marked){
+ const a=opt.split(/\s+/),w=marked.split(' '),nw=x=>x.replace(/[\u0001\u0002]/g,'').toLowerCase().replace(/[.,;:!?'"]+$/,''),A=a.map(nw),B=w.map(nw);
+ let p=0;while(p<A.length&&p<B.length&&A[p]===B[p])p++;
+ let q=0;while(q<A.length-p&&q<B.length-p&&A[A.length-1-q]===B[B.length-1-q])q++;
+ const from=p>=9?p-5:0,to=q>=9?B.length-q+5:B.length;
+ return (from?'…':'')+w.slice(from,to).join(' ')+(to<B.length?'…':'');
+}
 // the shortest honest form of a wrong-answer note, used only when the full one does not fit
 function shortNote(w){
  if(/^False\. Corrected: /.test(w))return 'False (another rule, twisted).';
@@ -723,8 +750,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='3.7';
+const APP_VERSION='3.8';
 const WHATS_NEW=[
+ 'New Explanations choice, Minimal Detailed: every wrong answer gets one short line with just what is wrong in it, like "It\'s 60 days, not 90 days." Settings, Explanations.',
  'New Explanations choice, Simple & Detailed: you see the Simple explanation, and one tap on "Why the other answers are wrong" opens the rest. Settings, Explanations.',
  'The report for Claude now shows how you do on each way of asking (direct, find the true one, find the false one, EXCEPT, double negative), and counts the rules you keep missing correctly.',
  'In the Why it\'s wrong notes, the words and numbers that make a statement false now stand out in bold.',
@@ -960,7 +988,7 @@ const FALSE_PREFIX=/^The false statement, corrected: /;
 // the topic is the exam outline's own section and its share of the test, e.g. Federal Mortgage-Related Laws (24%)
 function topicName(q){const c=CATEGORIES[q.category];return c?`${c.name} (${c.weight}%)`:(q.topic||'')}
 // Simple: why it's right, and why your pick was wrong when it was. Detailed: also why each other answer is wrong, short, whenever there is a real reason to give
-const EXPLAIN={simple:'Simple',hybrid:'Simple & Detailed',detailed:'Detailed'};
+const EXPLAIN={simple:'Simple',hybrid:'Simple & Detailed',minimal:'Minimal Detailed',detailed:'Detailed'};
 const explainMode=()=>EXPLAIN[state.settings.explain]?state.settings.explain:'simple',detailedOn=()=>explainMode()==='detailed';
 function wrongReason(q,o,sp,mine){
  const r=q.choiceReasons[o]||'';
@@ -970,6 +998,13 @@ function wrongReason(q,o,sp,mine){
  const c=(q.choices[o]||'').toLowerCase(),echo=c&&r.toLowerCase().startsWith(c+':')?r.slice(c.length+1).trim():r;   // "X: what X is" after "X —" would say X twice
  return sp(echo.charAt(0).toUpperCase()+echo.slice(1));
 }
+function minimalReason(q,o,sp,mine){
+ const r=q.choiceReasons[o]||'';
+ if(r.startsWith(CORR)){const [opt,truth]=sp.pair(q.choices[o],r.slice(CORR.length)),w=swaps(opt,truth);return w?'False. '+w:'False. The truth: '+trimShared(opt,capsFlip(flipParts(opt,CORR+truth)))}
+ if(/^This one IS /.test(r))return sp(r.replace(/, so it is not the exception\.$/,'.'));
+ return wrongReason(q,o,sp,mine);
+}
+const shortChoice=c=>{const w=c.split(/\s+/);return w.length>12?'“'+w.slice(0,7).join(' ').replace(/[.,;:]+$/,'')+'…”':c};
 function noteParts(q,perm,pick){
  perm=perm||[0,1,2,3];const sp=speller(),L=o=>letterOf(perm,o);
  const question=sp(q.prompt),answer=`${L(q.correct)}. ${sp(q.choices[q.correct])}`,why=q.why?sp(q.why):'';
@@ -978,8 +1013,8 @@ function noteParts(q,perm,pick){
  const missed=Number.isInteger(pick)&&pick!==q.correct,wrongs=[];
  for(const o of perm){if(o===q.correct)continue;const mine=o===pick;
   if(!mine&&explainMode()==='simple')continue;
-  const reason=wrongReason(q,o,sp,mine);if(!reason)continue;
-  wrongs.push({letter:L(o),choice:sp(q.choices[o]),reason,mine})}
+  const minimal=explainMode()==='minimal',reason=minimal?minimalReason(q,o,sp,mine):wrongReason(q,o,sp,mine);if(!reason)continue;
+  const choice=sp(q.choices[o]);wrongs.push({letter:L(o),choice:minimal?shortChoice(choice):choice,reason,mine})}
  const wrong=missed?(()=>{const w=wrongs.find(x=>x.mine);return w?`You picked ${w.letter}. ${w.choice} — ${w.reason}`:''})():'';
  return {topic:topicName(q),question,readAs:readAs(q.prompt),answer,right,steps:q.steps.map(x=>sp(x)),wrong,wrongs};
 }
@@ -987,7 +1022,7 @@ function noteHTML(q,perm,pick){
  const N=noteParts(q,perm,pick),row=(k,v,cls='')=>`<div class="expl-row${cls}"><b>${k}</b>${v}</div>`;
  const li=w=>`<li${w.mine?' class="mine"':''}><b>${HTML(w.letter)}.</b> ${HTML(w.choice)}${w.mine?' <em>(your pick)</em>':''} — <span>${flipHTML(w.reason)}</span></li>`,mode=explainMode(),rest=N.wrongs.filter(w=>!w.mine);
  // Simple & Detailed: the Simple part shows; the rest of Detailed is one tap away
- const wrongBody=mode==='detailed'?(N.wrongs.length?`<ul class="why-wrong">${N.wrongs.map(li).join('')}</ul>`:''):
+ const wrongBody=mode==='detailed'||mode==='minimal'?(N.wrongs.length?`<ul class="why-wrong">${N.wrongs.map(li).join('')}</ul>`:''):
   (N.wrong?`<p>${flipHTML(N.wrong)}</p>`:'')+(mode==='hybrid'&&rest.length?`<details class="why-more"><summary>${N.wrong?'Why the other answers are wrong':'Why the wrong answers are wrong'}</summary><ul class="why-wrong">${rest.map(li).join('')}</ul></details>`:'');
  return row('Topic',`<p>${HTML(N.topic)}</p>`)+row('Question',`<p>${HTML(N.question)}</p>${N.readAs?`<p class="read-as">${HTML(N.readAs)}</p>`:''}`)+row('Answer',`<p>${HTML(N.answer)}</p>`,' good-row')+
   row('Why it\'s right',`<p>${HTML(N.right)}</p>${N.steps.length?`<ol class="steps">${N.steps.map(x=>`<li>${HTML(x)}</li>`).join('')}</ol>`:''}`)+
@@ -1050,7 +1085,7 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="panel"><h3>Exam date and schedule</h3><p class="muted small" style="margin:10px 0 14px">Your countdown, daily goal, ready check (one week before) and the weekly full-length exams follow these. Days off have no goal; the other days carry it.</p><div class="field-grid"><label class="field">First day of your window<input type="date" data-plan="exam" value="${HTML(state.plan.exam)}"></label><label class="field">Last day of your window<input type="date" data-plan="last" value="${HTML(state.plan.last)}"></label>
  <label class="field">Full-length exam day<select data-plan="fullDay">${DAYS.map((d,i)=>`<option value="${i}" ${+state.plan.fullDay===i?'selected':''}>${d}</option>`).join('')}</select></label><label class="field">Add a day off (travel, no study)<input type="date" data-off-add></label></div>
  <div class="sched">${(state.plan.off||[]).slice().sort().map(d=>`<span class="chip">${HTML(fmtDay(parseDay(d)))} <button class="linkish" data-off-del="${HTML(d)}" aria-label="Remove ${HTML(d)}">✕</button></span>`).join('')||'<span class="small muted">No days off set.</span>'}</div></div>
- <div class="panel"><h3>Explanations</h3><p class="muted small" style="margin:10px 0 14px">Simple: why the answer is right, and why your pick was wrong when you miss. Simple &amp; Detailed: the Simple explanation, and one tap opens why each other answer is wrong. Detailed: why each wrong answer is wrong, every time, all shown.</p><div class="actions">${Object.entries(EXPLAIN).map(([k,l])=>`<button class="btn sm ${explainMode()===k?'primary':'ghost'}" data-explain="${k}" aria-pressed="${explainMode()===k}">${HTML(l)}</button>`).join('')}</div></div>
+ <div class="panel"><h3>Explanations</h3><p class="muted small" style="margin:10px 0 14px">Simple: why the answer is right, and why your pick was wrong when you miss. Simple &amp; Detailed: the Simple explanation, and one tap opens why each other answer is wrong. Minimal Detailed: every wrong answer, one short line each, just what is wrong in it. Detailed: every wrong answer, written out in full.</p><div class="actions">${Object.entries(EXPLAIN).map(([k,l])=>`<button class="btn sm ${explainMode()===k?'primary':'ghost'}" data-explain="${k}" aria-pressed="${explainMode()===k}">${HTML(l)}</button>`).join('')}</div></div>
  <div class="panel"><h3>Help the app evolve</h3><p class="muted small" style="margin:10px 0 12px">It tunes itself as you use it: it learns your handwriting from the lines you count, leans on the areas you miss, and gives the rule first on anything you missed twice or marked confusing. For fixes and new explanations, copy this report and paste it into your chat with Claude; the changes come back as an update that installs itself.</p><p class="small">${state.reports.length} report${state.reports.length===1?'':'s'} · ${Object.values(state.exposures).filter(e=>(e.lapses||0)>=2).length} rules missed twice or more</p><div class="actions" style="margin-top:12px">${button('copy-report','Copy report for Claude','primary sm')}${button('download-report','Download it','ghost sm')}</div></div>
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
  <div class="panel"><h3>Application information</h3><p class="muted small">Version ${APP_VERSION} · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
@@ -1179,7 +1214,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261015013717-8cc6e927',OPENED=Date.now();
+const BUILD='20261015023959-9393c712',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
