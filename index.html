@@ -237,6 +237,587 @@ add('ETH','Redlining',2,false,'A lender systematically avoids making mortgage cr
 add('ETH','Conflicts of interest',3,false,'A settlement company offers an MLO compensation for referring clients, while the MLO claims it is merely a marketing arrangement. What matters most?',
  ['The label chosen for the arrangement','Whether value is actually exchanged for prohibited referrals versus legitimate compensable services','Whether the agreement is in writing','Whether each payment is under $100'],1,'Compliance analysis focuses on substance, including whether payments are for referrals or actual services.','Calling a referral fee “marketing” does not automatically make it legal.', ['Labels do not control legality.','Correct.','A written contract does not make a referral payment legal.','No dollar amount makes a payment for referrals acceptable.'],'Is there real service at fair value, or payment for steering referrals?','Calling a kickback “marketing” does not make it lawful. Substance beats labels.','RESPA');
 
+// ---------- named-person scenarios, in the style of the real exam's practice sets: a short story about people,
+// "Which of the following is true?", Both / Neither answers, NOT questions, and look-alike answers from a cousin law or program.
+// Written in our own words. Each rule has two or three versions, so a review comes back in a new wording.
+const SCEN=[];
+// choices: [text, why it is wrong] with '' marking the right answer; cite 'from:F123' borrows that rule's citation
+function scen(fam,code,cite,rule,why,short,versions){
+ versions.forEach((v,i)=>{
+  const correct=v.c.findIndex(x=>x[1]==='');
+  if(correct<0||v.c.filter(x=>x[1]==='').length!==1||v.c.length!==4)throw new Error('scenario '+fam+' needs four choices and one answer');
+  SCEN.push({id:`${fam}.${'abc'[i]}`,family:fam,code,category:{I:'FED',II:'USC',III:'GMK',IV:'ORIG',V:'ETH'}[code.split('.')[0]],level:v.level||2,isMath:!!v.math,
+   prompt:v.p,choices:v.c.map(x=>x[0]),correct,choiceReasons:v.c.map((x,k)=>k===correct?'Correct.':x[1]),definition:rule,why,short,
+   trigger:'',memory:'',cite,source:'',checked:0,steps:v.steps||[],status:'verified'});
+ });
+}
+const IS=what=>`This one IS ${what}, so it is not the exception.`;
+
+// ===== Federal law =====
+scen('N01','I.1','12 USC 2607(a); 12 CFR 1024.14(b)',
+ 'Section 8 of RESPA bans both giving and accepting any thing of value, cash or not, for referring settlement service business.',
+ "A kickback takes two people: the one who pays for the referral and the one who takes the payment. Section 8 bans both sides, and the payment doesn't have to be cash. Gift cards, tickets, and meals all count.",
+ 'Section 8 bans both giving and accepting anything of value for referrals, so the payer and the taker both violate it.',
+ [{p:"Real estate agent Tanya offers to send loan officer Owen her buyers if he pays her $500 for each loan that closes. Owen pays her for the next three referrals. Which of the following is true?",
+   c:[['Both Tanya and Owen violated Section 8 of RESPA',''],
+      ['Only Tanya violated Section 8, because she asked for the money','Section 8 also bans paying. Owen paid for referrals, so he violated it too.'],
+      ['Only Owen violated Section 8, because he made the payments','Section 8 also bans accepting. Tanya took money for referrals, so she violated it too.'],
+      ['Neither violated Section 8, because each payment was under $1,000','There is no dollar floor. Any amount paid for a referral counts.']]},
+  {p:"Loan officer Priya sends a title company all of her closings. In return, the title company's manager sends Priya concert tickets every month. Which of the following is true?",
+   c:[['Both Priya and the title company violated Section 8 of RESPA',''],
+      ['Only the title company violated Section 8, because it gave the tickets','Priya accepted a thing of value for her referrals, so she violated it too.'],
+      ['Neither violated Section 8, because tickets are not cash','Tickets are a thing of value. Cash is not required.'],
+      ['Neither violated Section 8, if Priya tells her borrowers about the tickets','Disclosure does not make a referral payment legal.']]}]);
+
+scen('N02','I.5','31 CFR 1020.220; 31 CFR 1029.320; 31 CFR 1010.311',
+ "The USA PATRIOT Act requires a Customer Identification Program to verify each customer's identity; reporting large cash transactions and suspicious activity comes from the Bank Secrecy Act.",
+ "These two anti-money-laundering laws are easy to mix up. The PATRIOT Act, passed after September 11, made lenders confirm who their customers really are: name, date of birth, address, and an ID number, checked against government terrorist lists. The older Bank Secrecy Act is about reporting money: cash over $10,000 and suspicious activity.",
+ 'The PATRIOT Act is about verifying who the customer is; reporting cash and suspicious money is the Bank Secrecy Act.',
+ [{p:"Before taking an application, loan officer Luis checks the applicant's driver's license and confirms her name, date of birth, address, and Social Security number. Which law requires this?",
+   c:[['The USA PATRIOT Act',''],
+      ['The Bank Secrecy Act reporting rules','Those rules report cash and suspicious activity. Verifying identity is the PATRIOT Act.'],
+      ['The Gramm-Leach-Bliley Act','That law protects customer privacy.'],
+      ['The Fair Credit Reporting Act','That law governs credit reports.']]},
+  {p:"Loan officer Keisha notices a borrower depositing cash in amounts just under $10,000 several days in a row. Reporting this suspicious activity comes from which law?",
+   c:[['The Bank Secrecy Act',''],
+      ["The USA PATRIOT Act's Customer Identification Program",'That program verifies identity. Reporting suspicious money is the Bank Secrecy Act.'],
+      ['The Gramm-Leach-Bliley Act','That law protects customer privacy.'],
+      ['The Real Estate Settlement Procedures Act','RESPA covers settlement costs and kickbacks.']]},
+  {p:"Which of the following is NOT part of the USA PATRIOT Act's Customer Identification Program?",level:3,
+   c:[["Verifying the applicant's employment",''],
+      ['Collecting name, date of birth, address, and an ID number',IS('part of the Customer Identification Program')],
+      ['Checking customers against government lists of suspected terrorists',IS('part of the Customer Identification Program')],
+      ['Keeping the identification records for 5 years after the account closes',IS('part of the Customer Identification Program')]]}]);
+
+scen('N03','I.3','12 CFR 1026.23(a), (f)',
+ "The 3-business-day right of rescission covers a refinance or other non-purchase loan secured by the borrower's principal dwelling; it does not cover a purchase loan, a second home, or investment property.",
+ "Rescission protects a home the borrower already lives in from being pledged in a hurry. A purchase loan is how they get the home, so canceling it would undo the purchase, and a rental or second home isn't where the borrower lives.",
+ 'Rescission protects the home a borrower already lives in, so it covers a refinance of a principal dwelling, never a purchase or a rental.',
+ [{p:"On Monday, Hector closes a refinance of his primary home with a new lender, and his neighbor Lily closes the purchase of her first home. Which of the following is true?",
+   c:[['Only Hector has a 3-day right to cancel',''],
+      ['Only Lily has a 3-day right to cancel','Backwards. A purchase loan has no right of rescission.'],
+      ['Both Hector and Lily have a 3-day right to cancel',"Lily's purchase loan has no right of rescission."],
+      ['Neither Hector nor Lily has a right to cancel',"Hector's refinance of his own home with a new lender can be rescinded."]]},
+  {p:"Grace refinances her rental property with a new lender. Andre refinances the home he lives in with a new lender. Which of the following is true?",
+   c:[['Only Andre has the right to rescind',''],
+      ['Only Grace has the right to rescind','Rescission covers the home the borrower lives in, not a rental.'],
+      ['Both have the right to rescind',"A rental isn't Grace's principal dwelling, so she has no right."],
+      ['Neither has the right to rescind',"Andre's refinance of his own home has the right."]]}]);
+
+scen('N04','I.4','12 CFR 1026.19(e)(1)(iii), (f)(1)(ii)',
+ 'The Loan Estimate is due within 3 business days after the six-item application; the Closing Disclosure must be received at least 3 business days before consummation; and the Loan Estimate must go out at least 7 business days before consummation.',
+ 'The borrower gets time at both ends: an early estimate to shop with, then the final numbers in hand three business days before signing. The exam mixes up these numbers, so tie each one to its document.',
+ 'Loan Estimate out within 3 business days of the six items, Closing Disclosure received 3 business days before closing, and at least 7 business days from estimate to closing.',
+ [{p:"On Tuesday, Sam gives loan officer Nina his name, income, Social Security number, property address, estimated value, and the loan amount he wants. Which of the following is true?",
+   c:[["Nina's lender must deliver or mail the Loan Estimate within 3 business days",''],
+      ["Nina can wait for Sam's pay stubs before sending the Loan Estimate","Once the six items are in, the lender can't require documents first."],
+      ['The Loan Estimate is due 3 business days before closing','That is when the Closing Disclosure must be received.'],
+      ['The Loan Estimate is due within 7 business days','7 business days is the least time between the Loan Estimate and closing.']]},
+  {p:"Maria will sign her loan documents on Friday. Which statement about her Closing Disclosure is true?",
+   c:[['She must receive it at least 3 business days before Friday',''],
+      ['The settlement agent may hand it to her at the closing table','Day of closing is only the deadline for the seller\'s copy.'],
+      ['It must be mailed at least 7 business days before closing','7 business days applies to the Loan Estimate.'],
+      ['She can waive the waiting period for any reason','Only a real personal financial emergency allows a waiver.']]}]);
+
+scen('N05','I.2','15 USC 1691(a); 42 USC 3604',
+ 'ECOA protects race, color, religion, national origin, sex, marital status, age, public assistance income, and exercising credit rights; the Fair Housing Act protects race, color, religion, national origin, sex, familial status, and disability.',
+ 'Both laws share the first five classes. ECOA, a credit law, adds marital status, age, public assistance income, and exercising consumer credit rights. The Fair Housing Act, a housing law, adds familial status and disability. The exam tests the classes that belong to only one of them.',
+ 'Both laws share race, color, religion, national origin, and sex; ECOA adds marital status, age, and public assistance, and Fair Housing adds familial status and disability.',
+ [{p:"A lender turns Jasmine down because her income comes from public assistance. Which law does this violate?",
+   c:[['The Equal Credit Opportunity Act',''],
+      ['The Fair Housing Act','Public assistance income is protected by ECOA, not the Fair Housing Act.'],
+      ['The Real Estate Settlement Procedures Act','RESPA covers settlement costs and kickbacks.'],
+      ['The Home Mortgage Disclosure Act','HMDA only collects lending data.']]},
+  {p:"A landlord refuses to rent to Carlos because he has three young children. Which law does this violate?",
+   c:[['The Fair Housing Act',''],
+      ['The Equal Credit Opportunity Act',"Familial status is a Fair Housing Act class, and renting isn't credit."],
+      ['The Truth in Lending Act','TILA covers credit cost disclosures.'],
+      ['The SAFE Act','The SAFE Act covers originator licensing.']]},
+  {p:"Which of the following is NOT a protected class under the Fair Housing Act?",level:3,
+   c:[['Receiving public assistance income',''],
+      ['Familial status',IS('a Fair Housing Act class (one ECOA does not have)')],
+      ['Disability',IS('a Fair Housing Act class (one ECOA does not have)')],
+      ['Religion',IS('a protected class under both laws')]]}]);
+
+scen('N06','I.1','12 CFR 1024.33(b); 12 CFR 1026.39(b)',
+ 'When servicing moves, the old servicer notifies the borrower at least 15 days before and the new servicer within 15 days after; when the loan itself is sold, the new owner notifies the borrower within 30 days after.',
+ 'Servicing and ownership are different things. A servicing transfer changes where payments go, so the borrower hears from both servicers, 15 days on each side of the date. A sale changes who owns the loan, so the new owner has 30 days to tell the borrower.',
+ 'A servicing move gets notices 15 days before and 15 days after; a new owner of the loan notifies within 30 days.',
+ [{p:"Devon's loan servicing is moving from Bank A to Bank B on June 30. Which of the following is true?",
+   c:[['Bank A must notify Devon at least 15 days before June 30, and Bank B within 15 days after',''],
+      ['Both banks must notify him at least 30 days before June 30',"It's 15 days, and the new servicer's notice comes after the transfer."],
+      ['Only Bank B must notify him','The old servicer must notify him too.'],
+      ['Bank A must notify him within 60 days after June 30','60 days is the period when an on-time payment to the old servicer cannot be called late.']]},
+  {p:"An investor buys Hannah's existing mortgage loan, but her servicer stays the same. Which of the following is true?",
+   c:[['The new owner must notify Hannah within 30 days after the sale',''],
+      ["No notice is required because her servicer didn't change",'A new owner of the loan must send its own notice.'],
+      ['The new owner must notify her at least 15 days before the sale','15 days before is the old servicer\'s notice when servicing moves.'],
+      ['Her servicer must notify her 60 days before the sale','There is no 60-day notice for a sale.']]}]);
+
+scen('N07','I.5','12 USC 4902; HUD Mortgagee Letter 2013-04',
+ 'Under the Homeowners Protection Act, private mortgage insurance on a conventional loan can be cancelled on request at 80 percent of original value and ends automatically at 78 percent; FHA premiums follow FHA\'s own rules.',
+ "Once the borrower has enough equity, the lender doesn't need private mortgage insurance. The borrower may ask to cancel at 80 percent of the original value, and it ends on its own at 78 percent if they're current. FHA's premium is government insurance, so the Act doesn't cover it.",
+ "Conventional PMI can be cancelled at 80 percent and ends on its own at 78 percent; FHA's premium has its own rules and isn't covered.",
+ [{p:"Tyler's conventional loan balance has just reached 80 percent of his home's original value, and he is current on his payments. Which of the following is true?",
+   c:[['Tyler may ask in writing to cancel his private mortgage insurance',''],
+      ['His private mortgage insurance ends automatically now','Automatic termination comes at 78 percent.'],
+      ['He must wait until the midpoint of the loan term','The midpoint is only the final backstop.'],
+      ['It can never be cancelled on a conventional loan','The Homeowners Protection Act lets it be cancelled.']]},
+  {p:"Rosa put 3.5 percent down on an FHA loan. Her balance has reached 78 percent of the original value. Which of the following is true?",
+   c:[["Her FHA annual premium continues, because the Homeowners Protection Act doesn't cover FHA loans",''],
+      ['Her mortgage insurance ends automatically now','The 78 percent rule is for private mortgage insurance on conventional loans.'],
+      ['She may request cancellation, since she passed 80 percent','The request rule is for private mortgage insurance, not FHA.'],
+      ['Her premium ends after 5 years','That is not an FHA rule.']]}]);
+
+scen('N08','I.6','12 USC 5481(12), 5581; 42 USC 3610',
+ 'The CFPB writes and enforces the rules under RESPA, TILA, ECOA, and HMDA, including the Loan Estimate and Closing Disclosure; HUD enforces the Fair Housing Act and oversees the FHA loan program; the FHFA oversees Fannie Mae and Freddie Mac.',
+ 'The Dodd-Frank Act put the main consumer finance laws under the CFPB. HUD is the housing agency, so fair housing complaints and FHA stay with it. The FHFA oversees Fannie Mae and Freddie Mac and sets the conforming loan limit.',
+ 'The CFPB writes the consumer finance rules, HUD handles fair housing and FHA, and the FHFA oversees Fannie Mae and Freddie Mac.',
+ [{p:"Loan officer Andre wants to know which agency writes the rules for the Loan Estimate and Closing Disclosure. Which one is it?",
+   c:[['The Consumer Financial Protection Bureau',''],
+      ['The Department of Housing and Urban Development','HUD wrote the old RESPA rules before 2011.'],
+      ['The Federal Housing Finance Agency','The FHFA oversees Fannie Mae and Freddie Mac.'],
+      ['The Federal Trade Commission','The CFPB took over these rules.']]},
+  {p:"Nina believes a landlord refused to rent to her because of her disability. Which agency takes Fair Housing Act complaints?",
+   c:[['The Department of Housing and Urban Development',''],
+      ['The Consumer Financial Protection Bureau','The CFPB handles consumer finance rules, not fair housing complaints.'],
+      ['The Federal Housing Finance Agency','The FHFA oversees Fannie Mae and Freddie Mac.'],
+      ['The NMLS','NMLS is a licensing system.']]}]);
+
+scen('N09','I.5','16 CFR 310.2(q); 16 CFR 310.4(b)',
+ 'A company may call a consumer on the National Do Not Call Registry for 18 months after the consumer\'s last transaction, or 3 months after an inquiry or application, unless the consumer asked that company not to call.',
+ 'A real customer can expect to hear from a company they did business with, so calls are allowed for 18 months after the last transaction. Just asking a question is a weaker tie, so an inquiry allows only 3 months.',
+ 'An existing customer can be called for 18 months after the last transaction, but an inquiry allows only 3 months.',
+ [{p:"Lily closed a loan with Owen's company 12 months ago, and her number is on the National Do Not Call Registry. May Owen call her about refinancing?",
+   c:[["Yes, because she's been a customer within the last 18 months",''],
+      ['No, never, once her number is on the registry','A customer may be called for 18 months after the last transaction.'],
+      ['Yes, at any time, because she was once a customer','The relationship lasts 18 months after the last transaction.'],
+      ['Yes, but only after 9 p.m. her time','Calls are allowed only from 8 a.m. to 9 p.m.']]},
+  {p:"Sam asked Keisha's company for a rate quote 4 months ago but never applied. His number is on the registry. May Keisha call him?",
+   c:[['No, because an inquiry allows calls for only 3 months',''],
+      ['Yes, for 18 months after his inquiry','18 months follows a transaction, not an inquiry.'],
+      ['Yes, because he asked for a quote','Only for 3 months, and 4 have passed.'],
+      ['Yes, if she calls between 7 a.m. and 10 p.m.','The calling window is 8 a.m. to 9 p.m., and the 3 months have passed anyway.']]}]);
+
+// ===== Uniform State Content =====
+scen('N10','II.3','12 USC 5102(3)-(4); 12 CFR 1008.103',
+ 'A license is required to take a residential mortgage loan application and offer or negotiate terms for pay; clerical staff working under a licensed originator need none, but an independent contractor processor or underwriter must be licensed.',
+ "A license is for the people who shape a borrower's deal. Staff doing clerical work under a licensed originator don't, so they need none. An independent contractor processor has no licensed employer supervising them, so they need their own license.",
+ 'A license is for taking applications and offering or negotiating terms, plus independent contractor processors; clerical staff under supervision need none.',
+ [{p:"Marcus is a loan processor who works as an independent contractor for several mortgage brokers. Which of the following is true?",
+   c:[['Marcus needs a state MLO license',''],
+      ['He never needs a license, because he is a processor',"Employee processors under supervision don't; independent contractors do."],
+      ['He only needs to register with NMLS','Registration is for employees of banks and credit unions.'],
+      ['He needs a license only after 5 loans in a year','There is no loan count for this rule.']]},
+  {p:"Dana is a receptionist at a mortgage company. She answers phones, schedules appointments, and collects documents, but never discusses rates or terms. Which of the following is true?",
+   c:[["Dana doesn't need a license, because her work is clerical",''],
+      ['She needs a license, because she talks to borrowers','Scheduling and collecting documents is clerical.'],
+      ['She must register with NMLS','Registration is for employees of banks and credit unions.'],
+      ['She needs a license after 90 days on the job','Time on the job does not matter.']]}]);
+
+scen('N11','II.3','12 USC 5104(b)(2)',
+ 'Any felony conviction within the 7 years before applying bars an MLO license, and a felony involving fraud, dishonesty, breach of trust, or money laundering bars it permanently; a pardon removes the bar.',
+ 'The bars are about trust with other people\'s money. Any felony keeps someone out for 7 years, which gives them time to show they\'ve changed. A fraud-type felony goes to the heart of the job, so it bars them for good.',
+ 'Any felony bars a license for 7 years, and a fraud-type felony bars it forever, unless pardoned.',
+ [{p:"Owen was convicted of felony check fraud 12 years ago and was never pardoned. Can he get an MLO license?",
+   c:[['No, a fraud felony is a permanent bar',''],
+      ['Yes, because more than 7 years have passed','The 7-year limit is for other felonies. Fraud bars forever.'],
+      ['Yes, with a larger surety bond',"A bond doesn't cure a bar."],
+      ['Yes, if his employer sponsors him','Sponsorship does not cure a bar.']]},
+  {p:"Priya was convicted 5 years ago of a felony that did not involve fraud or dishonesty, and it was never pardoned. Which of the following is true?",
+   c:[['She cannot be licensed until 7 years have passed since the conviction',''],
+      ['She is barred forever','Only fraud, dishonesty, breach of trust, or money laundering felonies bar forever.'],
+      ["She can be licensed now, since it wasn't fraud",'Any felony bars a license for 7 years.'],
+      ['She can be licensed now if she scores 80 percent on the test','A test score does not lift the bar.']]}]);
+
+scen('N12','II.3','from:F84',
+ 'After a first or second failed SAFE test, wait at least 30 days; after three failures in a row, wait at least 180 days.',
+ 'A wait after a failed test gives time to study instead of guessing again. Three failures in a row means serious preparation is needed, so the wait grows to 180 days.',
+ 'The wait is 30 days after a first or second failure, and 180 days after three in a row.',
+ [{p:"Hector failed the SAFE test on his first try. When can he take it again?",
+   c:[['After at least 30 days',''],
+      ['After at least 180 days','180 days follows three failures in a row.'],
+      ['The next day','There is a 30-day wait.'],
+      ['After 1 year','Too long. It is 30 days.']]},
+  {p:"Grace has failed the SAFE test three times in a row. When can she try again?",
+   c:[['After at least 180 days',''],
+      ['After at least 30 days','30 days follows a first or second failure.'],
+      ['Never','She can retest after 180 days.'],
+      ['After 5 years','5 years is when a former licensee must retest.']]}]);
+
+scen('N13','II.3','from:F382',
+ 'Temporary authority lets an originator with a clean record keep originating at a state-licensed company while a new license application is pending, if they were registered in the past year or licensed in another state during the 30 days before applying.',
+ 'Temporary authority is a bridge for experienced originators who were recently checked by a regulator: a registered bank originator or someone already licensed in another state. They can keep working while the new state decides.',
+ 'Temporary authority lets a recently registered or licensed originator with a clean record work while the new state reviews the application.',
+ [{p:"Andre was a registered loan officer at a federally insured bank for 3 years and has a clean record. He joins a state-licensed mortgage company and applies for a state license. Which of the following is true?",
+   c:[['He may originate under temporary authority while his application is pending',''],
+      ['He must stop originating until the license is granted','He was registered within the past year, so temporary authority covers him.'],
+      ['He needs no state license, because he was registered','At a state-licensed company he needs a state license.'],
+      ['He must first retake the SAFE test','Nothing here requires a retest.']]},
+  {p:"Tanya has held a Texas MLO license for 2 years with a clean record. She joins a state-licensed company and applies for a Louisiana license. Which of the following is true?",
+   c:[['She may originate in Louisiana under temporary authority while the application is pending',''],
+      ['She may not originate in Louisiana until the license is issued','Temporary authority lets a recently licensed originator work while the new state decides.'],
+      ['Her Texas license lets her originate in every state','Each state licenses separately.'],
+      ['She may originate in Louisiana only for refinances','Temporary authority has no such limit.']]}]);
+
+scen('N14','II.2','from:F93',
+ "An originator's NMLS unique identifier is permanent, follows the person across employers and states, and may never be replaced by someone else's number on an application.",
+ 'The number shows who actually originated each loan, which is how regulators and consumers trace a career. It belongs to the person for life, so it never changes, and putting someone else\'s number on a loan hides the truth.',
+ "The NMLS number belongs to the person for life, and using someone else's number on an application is prohibited.",
+ [{p:"Loan officer Luis's license is still pending, so he puts his manager's NMLS number on an application he took. Which of the following is true?",
+   c:[['This is prohibited',''],
+      ['It is allowed while his license is pending',"Using someone else's number hides who originated the loan."],
+      ['It is allowed if his manager reviews the file','The number must be the actual originator\'s.'],
+      ['It is required by NMLS',"Backwards. NMLS prohibits using another person's number."]]},
+  {p:"Keisha moves to a new mortgage company. What happens to her NMLS unique identifier?",
+   c:[['It stays the same',''],
+      ['She gets a new one from the new company','The number belongs to her for life.'],
+      ['It transfers to her old company','It belongs to the person, not the company.'],
+      ['It expires after 30 days','It is permanent.']]}]);
+
+// ===== General mortgage knowledge =====
+scen('N15','III.1','38 USC 3710(e); 38 USC 3729(b)',
+ 'A VA Interest Rate Reduction Refinance Loan (IRRRL), the VA streamline, refinances an existing VA loan into a new VA loan, usually to lower the rate, with no cash out and a 0.5 percent funding fee.',
+ "The VA streamline refinance exists to make a veteran's existing VA loan cheaper, not to pull out equity. So it replaces one VA loan with another, usually lowers the rate, gives the veteran no cash out, and carries a reduced funding fee of 0.5 percent.",
+ 'An IRRRL is the VA streamline: it replaces one VA loan with another, usually at a lower rate, with no cash out and a 0.5 percent funding fee.',
+ [{p:"Marcus has a VA loan and wants a lower interest rate without taking any cash out. Which loan fits?",
+   c:[['A VA Interest Rate Reduction Refinance Loan (IRRRL)',''],
+      ['A VA cash-out refinance','Marcus wants no cash. The IRRRL is the VA rate-reduction refinance.'],
+      ['An FHA streamline refinance',"That's for an existing FHA loan."],
+      ['A USDA guaranteed loan','USDA finances rural home purchases.']]},
+  {p:"Which of the following is true of a VA IRRRL?",
+   c:[['It refinances an existing VA loan into a new VA loan',''],
+      ['It lets the veteran take cash out of the home','An IRRRL is a no-cash-out refinance.'],
+      ['It can refinance an FHA loan into a VA loan','An IRRRL only refinances an existing VA loan.'],
+      ['It carries no funding fee','It has a reduced funding fee, 0.5 percent.']]},
+  {p:"Which of the following is NOT true of a VA IRRRL?",level:3,
+   c:[['It lets the veteran take cash out of the home',''],
+      ['It refinances an existing VA loan into a new VA loan',IS('true of an IRRRL')],
+      ['It carries a reduced funding fee of 0.5 percent',IS('true of an IRRRL')],
+      ["It is often called the VA streamline",IS('true of an IRRRL')]]}]);
+
+scen('N16','III.1','HUD Handbook 4000.1 II.A.8.d',
+ 'An FHA streamline refinance replaces an existing FHA loan with limited documentation and generally no new appraisal, must give the borrower a net tangible benefit, and is not a cash-out loan.',
+ "FHA's streamline exists to make an existing FHA loan cheaper with little paperwork. Because FHA already insures the loan, it skips most of the credit and appraisal work, but it must leave the borrower better off and it can't be used to pull out cash.",
+ 'An FHA streamline refinances an existing FHA loan with little paperwork and no cash out, and it must benefit the borrower.',
+ [{p:"Dana has an FHA loan and wants a lower rate with less paperwork and no new appraisal. Which loan fits?",
+   c:[['An FHA streamline refinance',''],
+      ['A VA IRRRL','IRRRLs are for existing VA loans.'],
+      ['A USDA guaranteed loan','USDA finances rural home purchases.'],
+      ['A reverse mortgage','A reverse mortgage pays out equity to older owners.']]},
+  {p:"Which of the following is true of an FHA streamline refinance?",
+   c:[['It refinances an existing FHA loan and must give the borrower a net tangible benefit',''],
+      ['It is designed to give the borrower cash out of the home','A streamline is not a cash-out loan.'],
+      ['It can refinance a VA loan into an FHA loan','It refinances an existing FHA loan.'],
+      ['It always requires a full new appraisal','It generally needs no new appraisal.']]}]);
+
+scen('N17','III.1','12 USC 1709(b)(9); HUD Handbook 4000.1; VA Lenders Handbook; USDA Handbook HB-1-3555',
+ 'VA loans need no down payment and carry no monthly mortgage insurance; FHA needs 3.5 percent down with a score of 580 or higher (10 percent from 500 to 579) and charges mortgage insurance; USDA needs no down payment but charges guarantee fees.',
+ 'Each government program has its own signature. VA guarantees part of the loan, so a veteran can put nothing down and pay no monthly mortgage insurance. FHA insures loans with a small down payment tied to the credit score. USDA also allows nothing down for rural buyers but charges guarantee fees.',
+ 'VA: no down payment and no monthly mortgage insurance; FHA: 3.5 percent down at 580 or higher with mortgage insurance; USDA: no down payment but guarantee fees.',
+ [{p:"Hannah, a veteran, buys a home with no down payment and pays no monthly mortgage insurance. Which loan does she most likely have?",
+   c:[['A VA loan',''],
+      ['An FHA loan','FHA needs at least 3.5 percent down and charges mortgage insurance.'],
+      ['A conventional loan with 3 percent down','Under 20 percent down needs private mortgage insurance.'],
+      ['A USDA loan','USDA allows no money down but charges an annual guarantee fee paid monthly.']]},
+  {p:"Carlos has a 600 credit score and buys a home with an FHA loan. What is his minimum down payment?",
+   c:[['3.5 percent',''],
+      ['10 percent','10 percent is for scores from 500 to 579.'],
+      ['0 percent','No money down is VA or USDA.'],
+      ['20 percent','20 percent avoids private mortgage insurance on a conventional loan.']]}]);
+
+scen('N18','III.2','from:F420',
+ 'In a 5/1 ARM the rate is fixed for 5 years and then adjusts every year; caps such as 2/1/5 limit the first change, each later change, and the lifetime increase over the starting rate.',
+ 'An ARM\'s name and caps tell you how it moves. The first number is how many years the rate is fixed, the second is how often it adjusts after that. The caps protect the borrower from payment shock, and the last cap is the most the rate can ever rise above where it started.',
+ 'The first number is the fixed years and the second is how often it adjusts; the last cap number is the most the rate can ever rise over the start rate.',
+ [{p:"Lily has a 5/1 adjustable-rate mortgage. When can her rate first change?",
+   c:[['After 5 years, then once a year',''],
+      ['After 1 year, then every 5 years','Backwards. The first number is the years fixed.'],
+      ['Every month','A 5/1 is fixed for 5 years.'],
+      ['Never, because it is fixed','Only the first 5 years are fixed.']]},
+  {p:"Owen's adjustable-rate loan started at 4 percent with caps of 2/1/5. What is the highest his rate can ever go?",
+   c:[['9 percent',''],
+      ['6 percent','6 percent is the most after the first adjustment.'],
+      ['7 percent','7 percent is the most after two adjustments.'],
+      ['5 percent','The lifetime cap is 5 points above the start rate: 4 + 5.']]}]);
+
+scen('N19','III.3','from:F146',
+ 'An acceleration clause lets the lender call the whole balance due on default; an alienation (due-on-sale) clause lets it call the loan due when the property is sold or transferred.',
+ '"Accelerate" means speed up: on default, the lender can make the whole balance due now. "Alienate" means transfer: when the home is sold without the lender\'s consent, the lender can call the loan due.',
+ 'Default triggers the acceleration clause; a sale or transfer triggers the alienation, or due-on-sale, clause.',
+ [{p:"Andre stops making payments, and his lender demands the entire loan balance now. Which clause allows this?",
+   c:[['The acceleration clause',''],
+      ['The alienation clause','That is triggered by a sale or transfer.'],
+      ['The defeasance clause','That ends the lien at payoff.'],
+      ['The prepayment clause','That covers paying early.']]},
+  {p:"Priya sells her home, and the buyer wants to take over her conventional loan without the lender's consent. Which clause lets the lender call the loan due?",
+   c:[['The alienation (due-on-sale) clause',''],
+      ['The acceleration clause','Acceleration is for default.'],
+      ['The subordination clause','That changes lien order.'],
+      ['The partial release clause','That frees part of the property from the lien.']]}]);
+
+scen('N20','III.3','from:F135',
+ 'The primary mortgage market is where loans are originated; the secondary market is where existing loans and servicing rights are bought and sold.',
+ 'Loans start in the primary market, where lenders make them to borrowers. Then they are sold in the secondary market to investors and companies like Fannie Mae, which gives lenders cash to lend again. "Secondary" has nothing to do with second mortgages.',
+ 'Loans are made in the primary market and then bought and sold in the secondary market, which has nothing to do with second mortgages.',
+ [{p:"Keisha's lender makes her a mortgage, then sells it to Fannie Mae. Where did each step happen?",
+   c:[['The loan was made in the primary market and sold in the secondary market',''],
+      ['Both steps happened in the primary market','Selling an existing loan is the secondary market.'],
+      ['The loan was made in the secondary market and sold in the primary market','Backwards. Loans are made in the primary market and sold in the secondary market.'],
+      ['The sale created a second mortgage',"Secondary market doesn't mean second mortgage."]]},
+  {p:"Which of the following happens in the secondary mortgage market?",
+   c:[['Fannie Mae buys a closed loan from a lender',''],
+      ["A lender takes Sam's application",'Taking applications is the primary market.'],
+      ['A homeowner takes out a second mortgage','A new loan, even a second mortgage, is made in the primary market.'],
+      ['An appraiser inspects a home for a new loan','Appraisals are part of making the loan, in the primary market.']]}]);
+
+scen('N21','III.3','from:F154',
+ 'One discount point is 1 percent of the loan amount and buys a lower interest rate; a lender credit is the reverse, lowering closing costs in exchange for a higher rate.',
+ 'Points and lender credits are opposite trades. Paying points costs money up front to lower the rate. A lender credit gives money toward closing costs, and the borrower pays for it with a higher rate.',
+ 'Points cost 1 percent of the loan each to buy a lower rate; a lender credit trades a higher rate for lower closing costs.',
+ [{p:"Tyler pays 2 discount points on a $300,000 loan. What do the points cost, and what do they buy?",math:true,
+   steps:['One point = 1 percent of the loan amount','2 points × $300,000 × 1% = $6,000, paid to get a lower interest rate'],
+   c:[['$6,000, to get a lower interest rate',''],
+      ['$6,000, to get a lender credit','Points buy a lower rate. A lender credit is the opposite trade.'],
+      ['$600, to get a lower interest rate','A point is 1 percent: 2 × $3,000 = $6,000.'],
+      ['$60,000, to get a lower interest rate','That is 20 percent. A point is 1 percent.']]},
+  {p:"Nina wants lower closing costs and is willing to take a higher interest rate. What should her loan officer offer?",
+   c:[['A lender credit',''],
+      ['Discount points','Points cost more up front to lower the rate.'],
+      ['A temporary buydown','A buydown is paid up front to lower early payments.'],
+      ['A balloon payment','A balloon leaves a lump sum at the end.']]}]);
+
+// ===== Mortgage loan origination activities =====
+scen('N22','IV.3','from:F198',
+ "The escrow, title, or settlement agent runs the closing: prepares and coordinates it, collects and disburses the money, records the documents, and returns the closing package; explaining the loan's terms and features is the loan originator's job.",
+ "The closing agent is a neutral party who handles the paperwork and the money at closing. Explaining what the loan is, how it works and why it fits the borrower, is the loan originator's job, not the closing agent's.",
+ "The settlement agent runs the closing, handles the money, and records documents; explaining the loan is the loan originator's job.",
+ [{p:"Which of the following is NOT a job of the escrow or title officer?",level:3,
+   c:[["Explaining the loan program's features and benefits to the borrower",''],
+      ['Coordinating the closing',IS("the closing agent's job")],
+      ['Recording the documents',IS("the closing agent's job")],
+      ['Disbursing the funds',IS("the closing agent's job")]]},
+  {p:"At Grace's closing, who is responsible for explaining her loan terms and how her adjustable rate works?",
+   c:[['Her loan originator',''],
+      ['The escrow or title officer',"They run the closing but don't explain loan programs."],
+      ['The appraiser','The appraiser values the home.'],
+      ["The seller's real estate agent","The seller's agent represents the seller."]]}]);
+
+scen('N23','IV.3','12 CFR 1026.23(c), (f)(1)',
+ "A purchase loan has no right of rescission, so it may be funded on the day of closing; a refinance of the borrower's principal dwelling with a new creditor must wait until the 3-business-day rescission period ends.",
+ 'Funding waits only when the borrower can still cancel. A purchase loan has no right to cancel, so the money can move the same day. A refinance of the home the borrower lives in, with a new lender, gives three business days to cancel, so the lender holds the money until they pass.',
+ "A purchase loan has no right to cancel, so it can fund the day it closes; a refinance of the borrower's home with a new lender waits out the 3-business-day rescission period.",
+ [{p:"Maria closes on her home purchase Thursday morning. When can her loan fund?",
+   c:[['Thursday, the day of closing',''],
+      ['After 3 business days','Purchase loans have no rescission period.'],
+      ['After 7 business days','7 business days is the Loan Estimate wait.'],
+      ['Only after the deed is recorded a week later',"Recording doesn't hold up funding."]]},
+  {p:"Devon refinances the home he lives in with a new lender and signs on Thursday. When can the loan fund?",
+   c:[['After his 3-business-day rescission period ends',''],
+      ['Thursday, at closing','A refinance of his home with a new lender has a 3-day right to cancel.'],
+      ['Friday morning','Too early. The rescission period must end first.'],
+      ['Whenever Devon asks','Only a real personal financial emergency can waive the wait.']]}]);
+
+scen('N24','IV.2','from:F444',
+ "With three credit scores, use each borrower's middle score; with two, the lower; when there is more than one borrower, the loan uses the lowest of their scores.",
+ 'One unusually high or low score shouldn\'t decide a loan, so the lender takes the middle of three. Every borrower is responsible for the debt, so the loan is priced on the riskiest borrower\'s score.',
+ "Each borrower's middle score, or the lower of two, counts, and the loan uses the lowest of the borrowers' scores.",
+ [{p:"Sam's three credit scores are 655, 690, and 712. Which score does the lender use?",
+   c:[['690',''],
+      ['655','That is the lowest. With three scores, use the middle one.'],
+      ['712','That is the highest. With three scores, use the middle one.'],
+      ['686, the average','Scores are not averaged. Use the middle one.']]},
+  {p:"Hector's middle score is 720 and his wife Lily's middle score is 668. They apply together. Which score is the loan priced on?",
+   c:[['668',''],
+      ['720','The loan uses the lower borrower\'s score.'],
+      ['694, the average','Scores are not averaged.'],
+      ["Hector's, because he earns more","Income doesn't decide it."]]}]);
+
+scen('N25','IV.2','Fannie Mae Selling Guide B3-4.3-04; 12 USC 1709(b)(9)(C)',
+ "A gift must come from someone with a real tie to the borrower, such as family, and be documented with a gift letter saying no repayment is expected; it can't come from the seller or anyone who profits from the sale.",
+ "A gift has to really be a gift. A letter saying it never has to be repaid proves it isn't a hidden loan. Money from the seller, builder, or agent would really be a price cut, so it can't count as a gift.",
+ "A gift needs a letter saying it never has to be repaid, and it can't come from the seller or anyone who profits from the deal.",
+ [{p:"Jasmine's parents give her $15,000 toward her down payment. What must the lender get?",
+   c:[['A gift letter stating no repayment is expected',''],
+      ['A promissory note to her parents',"A note means it's a loan, not a gift."],
+      ["Nothing, since they're family",'Family gifts still need a gift letter.'],
+      ["Her parents' tax returns",'Not required for a gift.']]},
+  {p:"The seller of Tyler's new home offers to 'gift' him the down payment on his FHA loan. Which of the following is true?",
+   c:[['This is not allowed, because the seller profits from the sale',''],
+      ['It is allowed with a gift letter',"A letter can't make the seller an acceptable donor."],
+      ['It is allowed up to 6 percent','6 percent is for closing costs, not the down payment.'],
+      ['It is allowed if the price is raised to match','That just inflates the price.']]}]);
+
+scen('N26','IV.1','from:F203',
+ 'A prequalification is a rough estimate based only on what the consumer says; a preapproval rests on verified information and a credit review.',
+ "A prequalification is a quick, unverified guess at what someone might borrow. A preapproval is stronger because the lender has actually checked the borrower's credit, income, and assets.",
+ 'A prequalification is a rough estimate from what the borrower says; a preapproval is stronger because it is verified.',
+ [{p:"Owen tells loan officer Keisha his income and the price range he's looking at, and she tells him roughly how much he might borrow. Nothing is verified. What is this?",
+   c:[['A prequalification',''],
+      ['A preapproval','A preapproval is verified, with a credit review.'],
+      ['A loan application for a Loan Estimate','Six specific items make an application.'],
+      ['A loan commitment','A commitment comes after underwriting.']]},
+  {p:"Loan officer Luis pulls Grace's credit and verifies her income and assets before telling her how much she can borrow. What is this?",
+   c:[['A preapproval',''],
+      ['A prequalification',"That's based only on what she says."],
+      ['A Loan Estimate','That discloses costs. It is not an approval.'],
+      ['A Closing Disclosure','That shows the final terms at closing.']]}]);
+
+scen('N27','IV.1','12 CFR 1026.19(e)(2)(i)(A), (e)(3)(iv)(E)',
+ 'Before the consumer receives the Loan Estimate and says they intend to proceed, only a reasonable credit report fee may be charged; silence is never intent to proceed, and the lender is bound by the estimate only if the consumer goes ahead within 10 business days.',
+ 'Borrowers should be able to shop without paying up front, so only a credit report fee is allowed before they have the Loan Estimate and say go. Going ahead is the borrower\'s choice, so silence never counts, and the lender isn\'t held to its price forever.',
+ "Only a credit report fee is allowed before the Loan Estimate and the borrower's go-ahead, and silence never counts as a go-ahead.",
+ [{p:"Maria receives her Loan Estimate and doesn't respond for two weeks. Which of the following is true?",
+   c:[["Her silence isn't an intent to proceed, and after 10 business days the lender is no longer bound by the estimate",''],
+      ['Her silence counts as intent to proceed after 3 business days','Silence is never a yes.'],
+      ["The lender must honor the estimate's costs forever",'Only if she says go within 10 business days.'],
+      ['The lender may now charge her an appraisal fee','Fees beyond a credit report need her intent to proceed.']]},
+  {p:"Before Sam receives his Loan Estimate, the lender asks him to pay a $450 appraisal fee. Which of the following is true?",
+   c:[['This is not allowed; only a reasonable credit report fee can be charged before he gets the estimate and says he wants to proceed',''],
+      ['It is allowed, because appraisals are always paid up front','The appraisal fee waits until after the estimate and his go-ahead.'],
+      ['It is allowed if the lender is a bank','The rule applies to every creditor.'],
+      ['It is allowed if Sam has signed the application','Signing doesn\'t matter. He needs the estimate and to say go.']]}]);
+
+scen('N28','IV.4','from:F175',
+ 'The front-end ratio is the housing payment divided by gross monthly income; the back-end ratio adds the other monthly debts, still divided by gross income.',
+ 'Ratios measure how much of a borrower\'s income is already committed, and everyone is measured on gross income, before taxes. The front end looks only at the house; the back end adds the other debts.',
+ 'Front-end is housing over gross income; back-end adds the other debts, still over gross income.',
+ [{p:"Dana earns $6,000 a month before taxes and takes home $5,000. Her new housing payment will be $1,500, and her car and card payments total $600. What is her back-end ratio?",math:true,
+   steps:['Back-end ratio = (housing + other debts) ÷ gross monthly income','($1,500 + $600) ÷ $6,000 = $2,100 ÷ $6,000 = 35 percent'],
+   c:[['35 percent',''],
+      ['25 percent',"That's the front-end ratio, housing only."],
+      ['42 percent','That divides by take-home pay. Ratios use gross income.'],
+      ['10 percent',"That's only the other debts."]]},
+  {p:"Carlos earns $8,000 a month before taxes and takes home $6,400. His proposed housing payment is $2,000, and his other debts are $800. What is his front-end ratio?",math:true,
+   steps:['Front-end ratio = housing payment ÷ gross monthly income','$2,000 ÷ $8,000 = 25 percent'],
+   c:[['25 percent',''],
+      ['35 percent',"That's the back-end ratio, with the other debts added."],
+      ['31.25 percent','That divides by take-home pay. Ratios use gross income.'],
+      ['10 percent',"That's only the other debts."]]}]);
+
+scen('N29','IV.4','from:F174',
+ 'Loan-to-value divides the loan by the lower of the price or the appraised value; combined loan-to-value adds every loan on the property before dividing.',
+ "A lender won't lend against value that may not be there, so it uses the lower of the price or the appraisal. When there's more than one loan, all of them are borrowed against the same home, so combined loan-to-value adds them up.",
+ 'Divide the loan by the lower of price or appraisal, and for combined loan-to-value, add every loan first.',
+ [{p:"Lily agrees to pay $300,000 for a home that appraises for $290,000. Her loan is $261,000. What is the loan-to-value ratio?",math:true,
+   steps:['Use the lower of the price ($300,000) or the appraisal ($290,000): $290,000','$261,000 ÷ $290,000 = 0.90 = 90 percent'],
+   c:[['90 percent',''],
+      ['87 percent','That uses the price. Use the lower of price or appraisal.'],
+      ['97 percent','That divides the appraisal by the price.'],
+      ['10 percent','That is the part not borrowed, not the ratio.']]},
+  {p:"Andre's home is worth $400,000. He owes $240,000 on his first mortgage and $80,000 on a second mortgage. What is his combined loan-to-value?",math:true,
+   steps:['Add every loan: $240,000 + $80,000 = $320,000','$320,000 ÷ $400,000 = 0.80 = 80 percent'],
+   c:[['80 percent',''],
+      ['60 percent','That counts only the first mortgage.'],
+      ['20 percent','That counts only the second mortgage.'],
+      ['125 percent',"That divides the value by the loans. It's loans over value."]]}]);
+
+scen('N30','IV.3','from:F211',
+ 'The lender\'s title policy is required, protects only the lender up to the loan balance, and ends at payoff; the owner\'s policy is optional, paid once at closing, and lasts as long as the owner or heirs hold an interest.',
+ 'Each policy protects someone different. The lender\'s policy protects the loan, so the lender requires it and it fades as the loan is paid. The owner\'s policy protects the buyer\'s ownership, so it\'s the buyer\'s choice, paid once, and it lasts as long as they own the home.',
+ "The lender's policy is required and ends at payoff; the owner's policy is optional, paid once, and lasts as long as you own the home.",
+ [{p:"Priya is buying a home. She's told she must buy one title policy and may choose whether to buy another. Which of the following is true?",
+   c:[["The lender's policy is required; the owner's policy is her choice",''],
+      ["The owner's policy is required; the lender's policy is optional","Backwards. The lender requires its own policy; the owner's policy is the buyer's choice."],
+      ['Both policies are optional','The lender requires its own policy.'],
+      ['Both policies protect Priya',"The lender's policy protects only the lender."]]},
+  {p:"Ten years after buying her home, Hannah pays off her mortgage. Which of the following is true about her title insurance?",
+   c:[["Her owner's policy still protects her, while the lender's policy has ended",''],
+      ['Both policies have ended',"The owner's policy lasts as long as she owns the home."],
+      ["She must renew her owner's policy each year","It's paid once, at closing."],
+      ["The lender's policy now protects her",'It only ever protected the lender, and it ends at payoff.']]}]);
+
+// ===== Ethics =====
+scen('N31','V.1','from:F225',
+ 'Steering guides people toward or away from loans or neighborhoods because of a protected trait; redlining refuses to lend in an area; blockbusting scares owners into selling by claiming a protected group is moving in.',
+ 'These three are easy to mix up. Steering moves people around, redlining keeps lenders out of an area, and blockbusting creates panic selling. Each one uses a protected trait to decide who gets what.',
+ 'Steering points people away from places or loans, redlining refuses to lend in an area, and blockbusting scares owners into selling.',
+ [{p:"Loan officer Tyler tells borrowers of one race that a certain neighborhood 'isn't right for them' and points them to other areas. What is this?",
+   c:[['Steering',''],
+      ['Redlining','Redlining is a lender refusing to lend in an area.'],
+      ['Blockbusting','Blockbusting scares owners into selling.'],
+      ['Reverse redlining','That targets a community with bad loans.']]},
+  {p:"A real estate agent goes door to door telling owners to 'sell now before prices crash, because a certain group is moving in.' What is this?",
+   c:[['Blockbusting',''],
+      ['Steering','Steering guides buyers or borrowers toward or away from places.'],
+      ['Redlining','Redlining is refusing to lend in an area.'],
+      ['Disparate impact',"That's a neutral policy that hurts a protected group."]]}]);
+
+scen('N32','V.2','from:F397',
+ 'An originator may ask an appraiser to consider more comparable sales or correct errors, but may never pay, threaten, promise, or suggest a target value to influence the appraisal.',
+ 'The loan depends on an independent value. Giving the appraiser more information helps their judgment; pushing them toward a number corrupts it.',
+ 'Giving an appraiser more comparable sales is fine, but any threat, payment, promise, or target value is prohibited.',
+ [{p:"Loan officer Owen tells an appraiser, 'I need at least $350,000 on this one, or I'll find someone else.' Which of the following is true?",
+   c:[['This is prohibited appraiser coercion',''],
+      ['It is allowed if the value is supportable','The threat itself is the violation.'],
+      ['It is allowed because no money changed hands','A threat counts, not just a payment.'],
+      ['It is allowed if the borrower agrees','No one can approve pressuring an appraiser.']]},
+  {p:"Loan officer Nina asks the appraiser to consider three more recent comparable sales she found. Which of the following is true?",
+   c:[['This is allowed',''],
+      ['It is prohibited because she contacted the appraiser',"Giving more information is allowed; pushing a value isn't."],
+      ['It is prohibited unless the borrower pays a second fee','No fee is involved.'],
+      ['It is allowed only if she also names a target value','Naming a target value is prohibited.']]}]);
+
+scen('N33','V.1','from:F241',
+ 'Fraud for housing is lying to get a home to live in; fraud for profit is about money; a straw buyer lends their name and credit to hide the real buyer.',
+ "Fraud isn't excused because the borrower wants a home. Lying about income to buy a home to live in is fraud for housing. A straw buyer is a stand-in who hides who the real buyer is.",
+ 'Lying to get a home to live in is fraud for housing, and a person who lends their name to hide the real buyer is a straw buyer.',
+ [{p:"Jasmine overstates her income on her application so she can buy a home to live in. What is this?",
+   c:[['Fraud for housing',''],
+      ['Fraud for profit','Fraud for profit is about money, often with insiders.'],
+      ["Not fraud, because she'll live there",'Lying to get a loan is fraud either way.'],
+      ['Equity skimming',"Equity skimming drains someone else's equity."]]},
+  {p:"Carlos lets his cousin use his name and good credit to buy a house that the cousin will actually own and live in. What is Carlos?",
+   c:[['A straw buyer',''],
+      ['A co-signer','A co-signer is open about it; a straw buyer hides the real buyer.'],
+      ['An identity theft victim','He agreed to it.'],
+      ['A non-occupant co-borrower',"That role is disclosed to the lender."]]}]);
+
+scen('N34','V.1','12 CFR 1026.24(d), (i)(6)',
+ 'Stating a payment amount in an ad triggers disclosure of the down payment, the repayment terms, and the annual percentage rate; and a for-profit lender or broker may not call its staff counselors.',
+ 'One specific number in an ad, like a payment, shows only part of the deal, so it triggers the rest of the picture. And "counselor" suggests a neutral advisor, which a company selling loans is not.',
+ 'A payment amount in an ad triggers the down payment, terms, and annual percentage rate, and a for-profit lender can\'t call its staff counselors.',
+ [{p:"Loan officer Sam's ad says, 'Payments as low as $1,200 a month!' Which of the following is true?",
+   c:[['The ad must also show the down payment, the repayment terms, and the annual percentage rate',''],
+      ['The ad is fine as written','A payment amount is a trigger term.'],
+      ['The ad only needs to add the interest rate','It needs the annual percentage rate, plus the down payment and terms.'],
+      ['The ad only needs to add "rates subject to change"','A disclaimer does not replace the required terms.']]},
+  {p:"A for-profit mortgage company advertises, 'Talk to one of our free mortgage counselors today!' Which of the following is true?",
+   c:[["The ad is prohibited, because 'counselor' can't describe a for-profit lender's staff",''],
+      ['It is allowed because the conversation is free',"Free doesn't make a seller a counselor."],
+      ['It is allowed if the ad shows the NMLS number','An ID number does not fix it.'],
+      ['It is allowed in print but not online','The rule is the same everywhere.']]}]);
+
+scen('N35','V.2','from:F252',
+ 'An originator must report material changes, like a job loss before closing, to the lender, and must disclose any personal interest in a transaction.',
+ 'The lender approved the loan on the facts it had, so a big change, like losing a job, has to be reported. And a borrower deserves to know when the originator has a personal stake that could color their advice.',
+ 'Report material changes like a job loss to the lender, and disclose any personal stake in the deal.',
+ [{p:"After approval, Hector tells loan officer Grace he was laid off yesterday and asks her to keep quiet until closing next week. What should Grace do?",
+   c:[['Report it to the lender',''],
+      ['Keep quiet, since the loan is approved','The approval relied on his job.'],
+      ['Move the closing up to beat the news',"That's hiding a material fact."],
+      ['Tell him to find any job before closing','The change still has to be reported.']]},
+  {p:"Loan officer Devon's sister is selling a home, and Devon is asked to handle the buyer's loan. What must Devon do?",
+   c:[['Disclose the conflict of interest',''],
+      ['Nothing, unless the buyer asks','A conflict must be disclosed up front.'],
+      ['Refuse, because family deals are illegal',"It's allowed when disclosed."],
+      ['Waive his fee instead of disclosing',"Waiving the fee doesn't remove the interest."]]}]);
+
+scen('N36','V.2','from:F253',
+ "A borrower's personal financial information goes to an outside party only with the borrower's permission or as the law allows, and sharing it with a nonaffiliated company requires a privacy notice and a chance to opt out.",
+ "A borrower's finances are private. Being part of the deal doesn't entitle someone to them, and before a company shares customer information with an outside company, customers get a notice and a chance to say no.",
+ 'Borrower information stays private unless the borrower allows it, and sharing with an outside company needs notice and a chance to opt out.',
+ [{p:"The buyer's real estate agent asks loan officer Luis for a copy of the buyer's bank statements. What should Luis do?",
+   c:[['Decline unless the buyer authorizes it',''],
+      ["Send them, since the agent is part of the deal","Being in the deal doesn't entitle the agent to the buyer's finances."],
+      ['Read the balances over the phone','Sharing by phone is still sharing without permission.'],
+      ['Send only the first page','Any part still needs permission.']]},
+  {p:"Keisha's mortgage company wants to share customer information with an unaffiliated marketing company. What must it do first?",
+   c:[['Give customers a privacy notice and a chance to opt out',''],
+      ['Nothing, once their loans have closed',"Closing doesn't end customers' privacy rights."],
+      ['Charge customers a fee for the sharing','No fee is involved.'],
+      ['File a Suspicious Activity Report','That reports possible crimes.']]}]);
+
 // ---------- the MLO Prep rule bank: several wordings of each rule, the rule being the "family" ----------
 const BANK=JSON.parse(document.getElementById('bank-data').textContent);
 const SEC_CAT=Object.freeze({I:'FED',II:'USC',III:'GMK',IV:'ORIG',V:'ETH'});
@@ -252,6 +833,9 @@ function citeLink(c){
 const wrongWhy=(fam,choice,note)=>{const x=BANK.X&&BANK.X[fam]&&BANK.X[fam][choice];return x&&(/^It says ".*", (but the answer is ".*"|which is not what the rule says)\.$/.test(note)||note.startsWith('Not what the rule says'))?x:note};
 function fromBank(r){const S=BANK.S,code=r[2];return {id:r[0],family:r[1],code,category:SEC_CAT[code.split('.')[0]],topic:BANK.topics[code],level:r[3],isMath:r[4]===1,prompt:S[r[5]],choices:r[6].map(i=>S[i]),correct:r[7],choiceReasons:r[8].map((i,k)=>k===r[7]?'Correct.':wrongWhy(r[1],S[r[6][k]],S[i])),definition:S[r[9]],why:(BANK.W&&BANK.W[r[1]])||'',short:(BANK.H&&BANK.H[r[1]])||'',trigger:S[r[10]],memory:S[r[11]],cite:S[r[12]],source:citeLink(S[r[12]]),checked:r[13],steps:r[14].map(i=>S[i]),plain:r[15]>=0?S[r[15]]:'',status:'verified'}}
 for(const q of data)q.code=ORIG_CODE[q.category+'|'+q.topic]||'';
+// the named-person scenarios: the outline topic, and a citation borrowed from the bank where the same rule already has one
+{const famCite=f=>{const r=BANK.Q.find(x=>x[1]===f);return r?BANK.S[r[12]]:''};
+ for(const q of SCEN){if(q.cite.startsWith('from:'))q.cite=famCite(q.cite.slice(5));q.topic=BANK.topics[q.code]||'';q.source=citeLink(q.cite);q.trigger=q.trigger||q.short}}
 // a true/false statement question: "Which statement about ... is TRUE?", "Three of the following ... Which one is accurate?", "... EXCEPT:"
 const STMT_RE=/(statements? (?:about|concerning)|Which (?:one )?of the following (?:statements )?is (?:TRUE|FALSE|true|false|accurate|NOT accurate|NOT inaccurate)|EXCEPT:|is (?:TRUE|FALSE)\?$|Which statement)/;
 // double negatives: the same question and answer, asked the way the exam likes to twist it ("NOT inaccurate" = true, "NOT prohibited" = allowed)
@@ -262,9 +846,11 @@ function doubleNegative(p){
  if((m=/^Which (.+?) is (?:permitted|allowed)( .+)?\?$/.exec(p)))return `Which ${m[1]} is NOT prohibited${m[2]||''}?`;
  if((m=/^Which (.+?) is acceptable( .+)?\?$/.exec(p)))return `Which ${m[1]} is NOT unacceptable${m[2]||''}?`;
  if((m=/^Which is a permitted (.+)\?$/.exec(p)))return `Which is NOT a prohibited ${m[1]}?`;
+ if((m=/^(.+) Which of the following is true\?$/.exec(p)))return `${m[1]} Which of the following is NOT inaccurate?`;
+ if((m=/^(.+) Which statement about (.+) is true\?$/.exec(p)))return `${m[1]} Which statement about ${m[2]} is NOT inaccurate?`;
  return '';
 }
-const WITH_TWISTS=[];for(const q of data.concat(BANK.Q.map(fromBank))){WITH_TWISTS.push(q);const d=q.isMath?'':doubleNegative(q.prompt);if(d)WITH_TWISTS.push({...q,id:q.id+'n',prompt:d,level:Math.max(2,q.level)})}
+const WITH_TWISTS=[];for(const q of data.concat(SCEN,BANK.Q.map(fromBank))){WITH_TWISTS.push(q);const d=q.isMath?'':doubleNegative(q.prompt);if(d)WITH_TWISTS.push({...q,id:q.id+'n',prompt:d,level:Math.max(2,q.level)})}
 const QUESTIONS=Object.freeze(WITH_TWISTS.map(q=>Object.freeze({...q,isStmt:STMT_RE.test(q.prompt),choices:Object.freeze(q.choices.slice()),choiceReasons:Object.freeze(q.choiceReasons.slice()),steps:Object.freeze((q.steps||[]).slice())})));
 const CATEGORIES=Object.freeze({FED:{name:'Federal Mortgage-Related Laws',weight:24},USC:{name:'Uniform State Content',weight:11},GMK:{name:'General Mortgage Knowledge',weight:20},ORIG:{name:'Mortgage Loan Origination Activities',weight:27},ETH:{name:'Ethics',weight:18}});   // the NMLS outline's own names
 const EXAM_QUOTA=Object.freeze({FED:29,USC:13,GMK:24,ORIG:32,ETH:22});      // 120 questions in the outline's proportions
@@ -479,7 +1065,7 @@ const SPELL=[
  ['FBI','Federal Bureau of Investigation',{the:1}],['FFIEC','Federal Financial Institutions Examination Council',{the:1}],
  ['CSBS','Conference of State Bank Supervisors',{the:1}],['AARMR','American Association of Residential Mortgage Regulators',{the:1}],
  ['NMLS','Nationwide Multistate Licensing System and Registry',{the:1}],['MERS','Mortgage Electronic Registration Systems',{the:1}],
- ['FICO','Fair Isaac Corporation',{}],
+ ['FICO','Fair Isaac Corporation',{}],['IRRRL','Interest Rate Reduction Refinance Loan',{pl:'Interest Rate Reduction Refinance Loans'}],
  ['APR','annual percentage rate',{pl:'annual percentage rates'}],['APOR','average prime offer rate',{}],['LE','Loan Estimate',{pl:'Loan Estimates'}],
  ['CD','Closing Disclosure',{pl:'Closing Disclosures'}],['QM','qualified mortgage',{pl:'qualified mortgages'}],['MLO','mortgage loan originator',{pl:'mortgage loan originators'}],
  ['ARM','adjustable-rate mortgage',{pl:'adjustable-rate mortgages'}],['HELOC','home equity line of credit',{pl:'home equity lines of credit'}],
@@ -654,6 +1240,7 @@ function readAs(p){
  if(/EXCEPT:?$/.test(p))return 'EXCEPT: three of the answers fit. Find the one that does NOT.';
  if(/is FALSE\?$/.test(p))return 'Find the false statement. The other three are true.';
  if((m=/\bNOT (?:an? )?(allowed|permitted|acceptable|required|accurate|true|correct|eligible|exempt|covered)\b/i.exec(p)))return `NOT ${m[1].toLowerCase()}: find the one that is not ${m[1].toLowerCase()}.`;
+ if(/\bNOT\b/.test(p))return 'NOT: three of the answers fit. Find the one that does NOT.';
  return '';
 }
 function pageRow(label,text){return `<p><b>${label}</b> ${HTML(text)}</p>`}
@@ -751,8 +1338,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='4.0';
+const APP_VERSION='4.1';
 const WHATS_NEW=[
+ 'New: 75 real-exam-style scenario questions about named people ("Which of the following is true?", Both / Neither, NOT), including the VA IRRRL, the FHA streamline, and the closing agent\'s job vs the loan originator\'s. NOT questions now get a Read it as line.',
  '? I guessed: tap it on any question you were not sure of, before or after you answer. A right guess counts half and comes back for review, and Notes has a Guessed tab.',
  'Explanations now shape Why it\'s right too. Simple: one sentence. Simple & Detailed: that sentence, tap More on why for the rest. Minimal Detailed: the rule in a line, then why. Detailed: the rule and the full why.',
  'New Explanations choice, Minimal Detailed: every wrong answer gets one short line with just what is wrong in it, like "It\'s 60 days, not 90 days." Settings, Explanations.',
@@ -975,7 +1563,7 @@ function buildReport(){
  const missedRules=Object.entries(state.exposures).filter(([,e])=>(e.lapses||0)>=2);
  const missed=missedRules.sort((a,b)=>b[1].lapses-a[1].lapses).slice(0,30).flatMap(([f,e])=>{const q=firstOf(f);return [`- ${f} (${q?.code||'?'}) missed ${e.lapses}x${e.lastCorrect?', right last time':''}: ${q?q.definition.replace(/^The false statement, corrected: /,'').slice(0,120):''}`,...picks(f)]});
  // how each way of asking is going: a direct question, find the true one, find the false one, EXCEPT, a double negative
- const styleOf=q=>{const r=readAs(q.prompt);return /^Two negatives/.test(r)?'Double negative':/^EXCEPT/.test(r)?'EXCEPT':/^(Three are true|Find the false|NOT )/.test(r)?'Find the FALSE one':(/^Three are wrong/.test(r)||q.isStmt)?'Find the TRUE one':'Direct'};
+ const styleOf=q=>{const r=readAs(q.prompt);return /^Two negatives/.test(r)?'Double negative':/^EXCEPT/.test(r)?'EXCEPT':/^(Three are true|Find the false|NOT\b)/.test(r)?'Find the FALSE one':(/^Three are wrong/.test(r)||q.isStmt)?'Find the TRUE one':'Direct'};
  const sty={};for(const a of state.attempts){const q=QMAP.get(a.questionId);if(!q)continue;const k=styleOf(q);(sty[k]=sty[k]||{n:0,ok:0}).n++;if(a.correct)sty[k].ok++}
  const styles=['Direct','Find the TRUE one','Find the FALSE one','EXCEPT','Double negative'].filter(k=>sty[k]).map(k=>`${k} ${Math.round(sty[k].ok/sty[k].n*100)}% of ${sty[k].n}`).join(' · ')||'none yet';
  const gAt=state.attempts.filter(a=>a.guessed),gRight=gAt.filter(a=>a.correct).length;
@@ -1233,7 +1821,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261015040857-4fd9118b',OPENED=Date.now();
+const BUILD='20261015135421-b3f4b960',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
