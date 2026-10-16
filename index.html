@@ -2020,6 +2020,295 @@ scen('B34','IV.2','Standard underwriting practice',
       ['A preapproval letter','A preapproval comes before a property is chosen.'],
       ['A conditional notice','Not the term for it.']]}]);
 
+// ---------- a third wording for the study-guide rules that had two, so a review comes back worded differently again.
+// addv() adds versions to a family already made by scen(), with the same rule, why, citation, and outline topic.
+function addv(fam,versions){
+ const base=SCEN.filter(q=>q.family===fam);if(!base.length)throw new Error('addv: no family '+fam);const b=base[0];
+ versions.forEach((v,i)=>{
+  const correct=v.c.findIndex(x=>x[1]==='');
+  if(correct<0||v.c.filter(x=>x[1]==='').length!==1||v.c.length!==4)throw new Error('addv '+fam+' needs four choices and one answer');
+  SCEN.push({...b,id:`${fam}.${'abcdefgh'[base.length+i]}`,level:v.level||2,isMath:!!v.math,prompt:v.p,choices:v.c.map(x=>x[0]),correct,
+   choiceReasons:v.c.map((x,k)=>k===correct?'Correct.':x[1]),steps:v.steps||[]});
+ });
+}
+
+addv('K01',[{p:"Which report does a bank file when a customer deposits more than $10,000 in cash?",
+ c:[['A Currency Transaction Report',''],
+    ['A Report of International Transportation of Currency',"That is the traveler's own report for carrying cash across the border."],
+    ['A Suspicious Activity Report','That reports suspicious activity at any amount. Cash over $10,000 gets a Currency Transaction Report.'],
+    ['A Fair Credit Reporting notice','That has nothing to do with cash.']]}]);
+addv('K02',[{p:"Grace's company has done business with a client for years, and the client posted its fax number on its website. Grace sends it a fax ad with no opt-out notice. Which of the following is true?",
+ c:[['The fax breaks the rule, because the opt-out notice is missing',''],
+    ['The fax is legal, because there is an established business relationship','The relationship helps, but the first page still needs the opt-out notice.'],
+    ['The fax is legal, because the number was posted on a website','A posted number does not remove the need for the notice.'],
+    ['The fax is legal if it is sent after 9 p.m.','No time of day fixes a missing notice.']]}]);
+addv('K03',[{p:"Under the FACT Act, which of the following may NOT appear on a printed card receipt?",level:3,
+ c:[["The card's expiration date",''],
+    ['The last 4 digits of the card number',IS('allowed on the receipt')],
+    ['The date of the purchase',IS('allowed on the receipt')],
+    ['The amount charged',IS('allowed on the receipt')]]}]);
+addv('K04',[{p:"Owen's company throws old applications, with credit reports attached, into an open dumpster behind the office. Which of the following is true?",
+ c:[["It violates the FACT Act's disposal rule",''],
+    ['It is allowed once the loans are more than 2 years old',"Age doesn't matter. The information must be destroyed."],
+    ['It is allowed if the dumpster is on company property',"Where the trash sits doesn't matter."],
+    ['It violates only the Bank Secrecy Act','The Bank Secrecy Act covers cash and suspicious activity.']]}]);
+addv('K06',[{p:"Under RESPA, which of the following is true of an affiliated business arrangement?",
+ c:[['The borrower may not be required to use the affiliate',''],
+    ['The disclosure may wait until closing','It must be given at or before the time of the referral.'],
+    ['The referring owner may be paid for each referral','Only a return on the ownership is allowed.'],
+    ['It applies only when the owner holds over 50 percent','Owning more than 1 percent is enough.']]}]);
+addv('K07',[{p:"When must a creditor get a second appraisal on a higher-priced mortgage loan?",
+ c:[['When the home was resold within 180 days at a big markup',''],
+    ['On every higher-priced loan, whether or not it was flipped','Only when the home was flipped.'],
+    ['Whenever the borrower asks the lender for a second one','It is required for flips, not on request.'],
+    ['When the appraisal comes in above the contract price','That is not what triggers it.']]}]);
+addv('K08',[{p:"Which of the following may a loan originator's pay be based on?",
+ c:[['A fixed percentage of the loan amount',''],
+    ['The interest rate of the loan','Pay based on the rate is banned.'],
+    ['Whether the loan has a prepayment penalty','Pay based on a loan term is banned.'],
+    ["The loan's points and fees",'Pay based on a loan term is banned.']]}]);
+addv('K10',[{p:"Which document shows that a veteran is eligible for a VA loan?",
+ c:[['A Certificate of Eligibility',''],
+    ['A Notice of Value','That is the result of the VA appraisal.'],
+    ['A DD-214 discharge form only','A discharge form can help get a Certificate of Eligibility, but the certificate is the proof.'],
+    ['A Certificate of Reasonable Value','That is the old name for the result of the VA appraisal.']]}]);
+addv('K11',[{p:"Tyler's FHA payment is $1,800, of which $1,450 is principal and interest. It is 20 days late. What is the most the servicer may charge as a late fee?",math:true,
+ steps:['The FHA cap is 4 percent of principal and interest','4% × $1,450 = $58'],
+ c:[['$58',''],
+    ['$72','That is 4 percent of the full payment. Use principal and interest only.'],
+    ['$72.50','That is 5 percent, the usual conventional figure.'],
+    ['$145','That is 10 percent.']]}]);
+addv('K13',[{p:"A developer finances 20 lots under one loan. What kind of mortgage is this?",
+ c:[['A blanket mortgage',''],
+    ['A package mortgage','A package mortgage covers a home plus personal property.'],
+    ['A chattel mortgage','A chattel mortgage covers personal property only.'],
+    ['A wraparound mortgage','A wraparound wraps a new loan around an existing one.']]}]);
+addv('K14',[{p:"Which of the following is an example of negative amortization?",
+ c:[['A reverse mortgage with no monthly payments',''],
+    ['A 30-year fixed-rate loan paid on time every month','Its balance falls with each payment.'],
+    ['A term loan with interest-only payments until maturity','Its balance stays the same. It does not grow.'],
+    ['A biweekly loan with a payment every two weeks','It pays down faster, not slower.']]}]);
+addv('K19',[{p:"Which of the following is a voluntary lien?",
+ c:[['A mortgage',''],
+    ['A tax lien','The owner does not agree to it.'],
+    ['A judgment lien',"A court places it without the owner's consent."],
+    ["A mechanic's lien","A contractor files it without the owner's consent."]]}]);
+addv('K24',[{p:"Which of the following would make a contract to buy a home unenforceable?",
+ c:[['It was never put in writing',''],
+    ['It was signed with no witnesses','Witnesses are not required.'],
+    ['The buyer has made no down payment yet','A down payment is not needed for a valid contract.'],
+    ['The price will be paid with a mortgage','Paying with a loan does not affect the contract.']]}]);
+addv('K25',[{p:"An owner promises to pay $500 to anyone who finds her lost dog. No one has promised to look. What kind of contract is this?",
+ c:[['A unilateral contract',''],
+    ['A bilateral contract','Only one side made a promise.'],
+    ['An implied contract','It was stated in words, so it is express.'],
+    ['An executed contract','Nothing has been performed yet.']]}]);
+addv('K27',[{p:"The subject home has 3 bedrooms. A comparable that sold for $310,000 has 4 bedrooms, and the extra bedroom is worth $10,000. What is the comparable's adjusted price?",math:true,
+ steps:['The comparable is better, so it sold for more','Subtract from the comparable: $310,000 − $10,000 = $300,000'],
+ c:[['$300,000',''],
+    ['$320,000','That adds. The comparable is better, so subtract.'],
+    ['$310,000','The extra bedroom must be accounted for.'],
+    ['$290,000','That subtracts $20,000. The bedroom is worth $10,000.']]}]);
+addv('K29',[{p:"Two nearly identical homes are for sale on the same street, one for $300,000 and one for $320,000. Most informed buyers choose the cheaper one. Which principle explains this?",
+ c:[['Substitution',''],
+    ['Highest and best use','That is about the most valuable legal use of the land.'],
+    ['Conformity','Conformity says value is highest when homes are similar to their neighbors.'],
+    ['Contribution','Contribution is the value one feature adds.']]}]);
+addv('K30',[{p:"Which of the following is true of a wholesale lender?",
+ c:[['It gets its borrowers through mortgage brokers',''],
+    ['It takes applications directly from the public','That describes a retail lender.'],
+    ['It never funds the loans it approves','A wholesale lender funds the loans brokers bring it.'],
+    ['It only buys loans that have already closed','That describes a secondary market investor.']]}]);
+addv('K31',[{p:"Loan officer Nina runs a conventional file through Desktop Underwriter. Whose system is she using?",
+ c:[['Fannie Mae',''],
+    ['Freddie Mac','Freddie Mac uses Loan Product Advisor.'],
+    ['Ginnie Mae','Ginnie Mae guarantees securities and does not run this system.'],
+    ['The FHA','The FHA does not own Desktop Underwriter.']]}]);
+addv('K32',[{p:"Priya buys a $400,000 rental with $40,000 down and a $360,000 loan. Using that much borrowed money to boost her return is called:",
+ c:[['Leverage',''],
+    ['Disintermediation','That is money leaving savings accounts.'],
+    ['Amortization','Amortization pays a loan down over time.'],
+    ['Hypothecation','Hypothecation is pledging property as security.']]}]);
+addv('K33',[{p:"Which of the following is a common contingency in a home purchase contract?",
+ c:[['The buyer must get loan approval',''],
+    ["The seller must pay the buyer's moving costs",'That is a concession, not a contingency.'],
+    ['The buyer must use a certain title company','A seller may not require that, and it is not a contingency.'],
+    ['The lender must lock the rate for 90 days','A rate lock is between the buyer and the lender, not a contract condition.']]}]);
+addv('K35',[{p:"Sam's pay stubs and credit report are 130 days old on his note date. Which of the following is true?",
+ c:[['They are too old and must be updated',''],
+    ['They are fine for up to 180 days','The limit is about 120 days.'],
+    ['They are fine for up to 12 months','The limit is about 120 days.'],
+    ['Only the credit report must be updated','Pay stubs have the same age limit.']]}]);
+addv('K36',[{p:"Which of the following must always be counted in the debt-to-income ratio, no matter how few payments are left?",
+ c:[['A car lease payment',''],
+    ['A boat loan with 6 payments left','An installment debt with 10 or fewer payments left may be left out.'],
+    ['A furniture loan with 9 payments left','An installment debt with 10 or fewer payments left may be left out.'],
+    ['A personal loan with 3 payments left','An installment debt with 10 or fewer payments left may be left out.']]}]);
+addv('K37',[{p:"An adjustable-rate loan's margin is 2.75 percent. How many basis points is that?",math:true,
+ steps:['1 percent = 100 basis points','2.75 × 100 = 275 basis points'],
+ c:[['275',''],
+    ['27.5','Multiply by 100, not 10.'],
+    ['2,750','That multiplies by 1,000.'],
+    ['0.0275','That is the decimal form, not basis points.']]}]);
+addv('K38',[{p:"Owen is buying a $320,000 home with 5 percent down. He paid $2,500 in earnest money. How much more must he bring toward the down payment?",math:true,
+ steps:['Required down payment: 5% × $320,000 = $16,000','Subtract the earnest money: $16,000 − $2,500 = $13,500'],
+ c:[['$13,500',''],
+    ['$16,000','That forgets the earnest money already paid.'],
+    ['$18,500','That adds the earnest money instead of subtracting it.'],
+    ['$304,000','That is the loan amount.']]}]);
+
+addv('B01',[{p:"Which of the following is true of hypothecation in a mortgage loan?",
+ c:[['The borrower keeps possession while pledging the home',''],
+    ['The lender takes possession until the loan is paid','The borrower keeps possession.'],
+    ['The borrower must move out until the loan is repaid','The borrower keeps living in the home.'],
+    ['It applies only to cars, not to homes','A mortgage is hypothecation too.']]}]);
+addv('B03',[{p:"Hector stops paying his property taxes, though he keeps paying his mortgage. Why does his lender care?",
+ c:[['A tax lien would come before the mortgage',''],
+    ['The lender must pay a fine to the county','There is no such fine.'],
+    ['The taxes are part of the interest rate','Taxes are separate from the rate.'],
+    ["It doesn't; taxes are only the owner's problem",'He promised in the mortgage to pay them, because a tax lien comes first.']]}]);
+addv('B04',[{p:"Which lien is paid first from a foreclosure sale, even though it was recorded last?",
+ c:[['A property tax lien',''],
+    ['A second mortgage','A second mortgage is junior to the first.'],
+    ['A home equity line of credit','It is junior to the first mortgage.'],
+    ['A judgment lien','A judgment lien ranks by when it was recorded.']]}]);
+addv('B05',[{p:"A builder's lender agrees to let construction loans take first position ahead of its land loan. Which clause allows this?",
+ c:[['A subordination clause',''],
+    ['A partial release clause','That frees lots from the lien as they sell.'],
+    ['An escalation clause','That raises the interest rate.'],
+    ['An exculpatory clause',"That limits the borrower's liability to the property."]]}]);
+addv('B06',[{p:"Which of the following is true of the Escrow Closing Notice?",
+ c:[['It must come 30 business days ahead when the servicer cancels',''],
+    ['It must come 3 business days ahead when the servicer cancels','3 business days is when the borrower asked.'],
+    ['It is only needed when the borrower asks to cancel','It is needed either way, with more notice when the servicer cancels.'],
+    ['It may be sent after the account is closed','It must come before the account closes.']]}]);
+addv('B08',[{p:"After Jasmine receives her Closing Disclosure, the lender adds a prepayment penalty. Which of the following is true?",
+ c:[['She gets a corrected Closing Disclosure and a new 3-day wait',''],
+    ['She gets a corrected Closing Disclosure at the closing table only','Adding a prepayment penalty restarts the wait.'],
+    ['Nothing changes if the APR stays the same','A prepayment penalty restarts the wait by itself.'],
+    ['The change is allowed only after closing','It can be made, but the wait restarts.']]}]);
+addv('B09',[{p:"Within how many business days after an application must the lender give the list of housing counseling agencies?",
+ c:[['3 business days',''],
+    ['7 business days','7 business days is the Loan Estimate wait before closing.'],
+    ['10 business days','The list has 10 agencies, but it is due in 3 business days.'],
+    ['30 business days','Too long. It is 3 business days.']]}]);
+addv('B10',[{p:"Why does HMDA require lenders to report the race, sex, and income of applicants?",
+ c:[['To help spot lending discrimination',''],
+    ['So lenders can set approval quotas by group','HMDA sets no quotas.'],
+    ['So credit bureaus can update credit scores','HMDA data do not go to credit bureaus.'],
+    ['So the IRS can check reported income','HMDA is not a tax law.']]}]);
+addv('B12',[{p:"Who must approve a mortgage company's written Red Flags program?",
+ c:[['The board or senior management',''],
+    ['The outside accounting firm','Approval comes from the board or senior management.'],
+    ['The Federal Trade Commission','Regulators do not approve each program.'],
+    ['The human resources department','Approval comes from the board or senior management.']]}]);
+addv('B13',[{p:"Which of the following callers is NOT exempt from the National Do Not Call Registry?",level:3,
+ c:[['A mortgage company offering refinances',''],
+    ['A charity asking for donations',IS('exempt from the Registry')],
+    ['A political campaign asking for votes',IS('exempt from the Registry')],
+    ['A polling firm taking a survey on a ballot issue',IS('exempt from the Registry')]]}]);
+addv('B14',[{p:"Which of the following is protected by ECOA only, and not by the Fair Housing Act?",level:3,
+ c:[['Age',''],
+    ['Familial status','That is a Fair Housing class, not an ECOA class.'],
+    ['Disability','That is a Fair Housing class, not an ECOA class.'],
+    ['Religion','Religion is protected under both laws.']]}]);
+addv('B15',[{p:"A large national lender makes a high-cost mortgage with a 5-year term that ends in a balloon payment. It is not a bridge loan. Which of the following is true?",
+ c:[['The balloon is not allowed',''],
+    ['The balloon is allowed, since it is under 10 years','There is no 10-year exception.'],
+    ['The balloon is allowed if the borrower agrees in writing','Agreeing does not make it allowed.'],
+    ['The balloon is allowed if the rate is fixed','The rate type does not matter.']]}]);
+addv('B16',[{p:"Which mortgage starts with low payments that increase over time to help a buyer qualify?",
+ c:[['A graduated payment mortgage',''],
+    ['A growing equity mortgage','Its payments rise to pay the loan off early, not to help a buyer qualify.'],
+    ['A biweekly mortgage','Its payments come every two weeks; they do not rise.'],
+    ['A reverse mortgage','A reverse mortgage pays out to the owner.']]}]);
+addv('B18',[{p:"Hannah has lived at her current address for 14 months. What else does the loan application ask her for?",
+ c:[['Her previous address, to cover 2 years',''],
+    ['Nothing, since she has lived there over a year','The application covers 2 years.'],
+    ['Her addresses for the last 10 years','Only 2 years are asked for.'],
+    ['A letter from her landlord as a reference','References are not required.']]}]);
+addv('B19',[{p:"Which of the following debts may be left out of the debt-to-income ratio?",
+ c:[['An installment loan with 7 payments left',''],
+    ['A car lease with 5 payments left','Leases always count.'],
+    ['Alimony with 15 months of payments left','More than 10 months remain, so it counts.'],
+    ['A credit card with no payment listed','It counts, at 5 percent of the balance.']]}]);
+addv('B20',[{p:"Kevin co-signs his daughter's loan but will not own the home. What does he sign?",
+ c:[['The note only',''],
+    ['The note and the mortgage','He has no ownership, so he does not sign the mortgage.'],
+    ['The mortgage only','He is backing the debt, so he signs the note.'],
+    ['The deed only','The deed transfers ownership, which he is not getting.']]}]);
+addv('B21',[{p:"Maria owns 10 financed rental properties and wants a loan on an 11th rental. Under Fannie Mae's limit, which of the following is true?",
+ c:[['She would be over the limit of 10',''],
+    ['There is no limit, because she is an investor','No limit applies only to a principal residence.'],
+    ['She may have up to 20 financed properties','The limit is 10.'],
+    ['The limit is 4 for any borrower','The limit is 10 for investment properties.']]}]);
+addv('B22',[{p:"An appraisal is 14 months old on the note date. Which of the following is true?",
+ c:[['A new appraisal is required',''],
+    ['An appraisal update is enough','After 12 months, an update is not enough.'],
+    ['Nothing is needed until 18 months','Too long. A new one is needed after 12 months.'],
+    ['The old appraisal may be used as is','It is too old to use.']]}]);
+addv('B23',[{p:"Which of the following is one of the four tests of highest and best use?",
+ c:[['Financially feasible',''],
+    ['Approved by the neighbors',"Neighbors' approval is not a test."],
+    ['Based on the asking price','The asking price is not a test.'],
+    ['Allowed under a future zoning change','A use must be legal now, not someday.']]}]);
+addv('B25',[{p:"A small apartment building is valued at $800,000, and its net operating income is $56,000 a year. What is the cap rate?",math:true,
+ steps:['Cap rate = net operating income ÷ value','$56,000 ÷ $800,000 = 0.07 = 7 percent'],
+ c:[['7 percent',''],
+    ['14.3 percent','That flips the division. Divide the income by the value.'],
+    ['5.6 percent','That divides by $1,000,000, not $800,000.'],
+    ['70 percent','The decimal is off by one place.']]}]);
+addv('B26',[{p:"Ten years after buying her home, Grace sells it. Which of the following is true about title insurance?",
+ c:[["The new buyer needs a new owner's policy",''],
+    ["Grace's owner's policy passes to the new buyer","An owner's policy cannot be transferred."],
+    ["Grace's lender's policy passes to the new buyer","The lender's policy protected her lender and ended at payoff."],
+    ['No title insurance is needed on a resale','Each new owner and lender needs new coverage.']]}]);
+addv('B27',[{p:"Which legal description divides land into townships and sections?",
+ c:[['The government survey',''],
+    ['Lot and block on a plat map','That uses a recorded plat map.'],
+    ['Metes and bounds','That traces boundaries from a point of beginning.'],
+    ['The monument method','Monuments are markers used with metes and bounds.']]}]);
+addv('B28',[{p:"During the survey, Sam learns his garage sits one foot onto the neighbor's land. What is this?",
+ c:[['An encroachment',''],
+    ['An easement','No right to use the land was ever granted.'],
+    ['A lis pendens','A lis pendens warns of a pending lawsuit.'],
+    ['An escheat','Escheat sends property to the state when no heirs are left.']]}]);
+addv('B29',[{p:"Which of the following is usually collected in an escrow account?",
+ c:[['Flood insurance premiums',''],
+    ["The owner's title policy",'That is paid once, at closing.'],
+    ['The appraisal fee','That is paid once, before closing.'],
+    ['The loan origination fee','That is paid once, at closing.']]}]);
+addv('B30',[{p:"Which of the following is NOT an acceptable way to bring money to closing?",level:3,
+ c:[['A paper bag of cash',''],
+    ["A wire transfer from the buyer's bank",IS('acceptable')],
+    ["A cashier's check from the buyer's bank",IS('acceptable')],
+    ['A wire sent by a documented gift donor',IS('acceptable')]]}]);
+addv('B31',[{p:"Andre's lender sells his loan but keeps servicing it. Where does Andre send his payments?",
+ c:[['To his original lender',''],
+    ['To the investor that bought the loan','The investor owns it, but the original lender still services it.'],
+    ['To the county recorder','The county records documents. It does not take payments.'],
+    ['To the closing agent',"The closing agent's job ended at closing."]]}]);
+addv('B32',[{p:"Which was created in 1968, when Fannie Mae was split in two?",
+ c:[['Ginnie Mae',''],
+    ['Freddie Mac','Freddie Mac came in 1970.'],
+    ['The FHFA','The FHFA was created in 2008.'],
+    ['The CFPB','The CFPB was created in 2010.']]}]);
+addv('B33',[{p:"Owen's FHA base loan is right at his county's limit, and he finances the upfront mortgage insurance premium. Which of the following is true?",
+ c:[['The premium may be added above the limit',''],
+    ['He must pay the premium in cash','The premium may be financed.'],
+    ['His loan is denied for going over the limit','The financed premium may go on top of the limit.'],
+    ['He must cut the base loan to fit the premium','The premium may be added on top.']]}]);
+addv('B34',[{p:"Desktop Underwriter returns an Approve/Eligible finding on Carlos's loan. Which of the following is true?",
+ c:[['The lender still decides',''],
+    ['The loan is now guaranteed to close','The finding is a recommendation. The lender decides.'],
+    ['Fannie Mae has now approved the loan','The finding is a recommendation. The lender decides.'],
+    ['No underwriter may review the file','An underwriter still reviews the file.']]}]);
+
+// ---------- the study-guide set: the bank rules that the printed study guide (both final exams and the chapter 1-9 quizzes) tests,
+// matched topic by topic, plus every rule written from the guide (K and B families). Practice can be limited to this set.
+const BOOK_FAMS=new Set(["F0", "F1", "F2", "F4", "F6", "F8", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F21", "F22", "F23", "F24", "F25", "F27", "F28", "F29", "F30", "F31", "F34", "F35", "F36", "F38", "F39", "F40", "F41", "F42", "F43", "F44", "F45", "F48", "F49", "F50", "F62", "F63", "F65", "F66", "F69", "F72", "F73", "F75", "F76", "F77", "F78", "F80", "F81", "F82", "F84", "F85", "F86", "F87", "F92", "F96", "F98", "F101", "F102", "F111", "F112", "F120", "F122", "F123", "F124", "F126", "F128", "F129", "F130", "F131", "F132", "F133", "F135", "F136", "F137", "F139", "F141", "F142", "F143", "F144", "F145", "F146", "F147", "F148", "F151", "F152", "F154", "F155", "F156", "F157", "F158", "F160", "F161", "F163", "F165", "F166", "F169", "F170", "F171", "F172", "F173", "F174", "F175", "F176", "F177", "F178", "F179", "F181", "F182", "F183", "F185", "F187", "F189", "F190", "F194", "F195", "F197", "F200", "F206", "F209", "F210", "F211", "F212", "F214", "F215", "F216", "F217", "F218", "F219", "F221", "F222", "F223", "F224", "F225", "F226", "F231", "F232", "F233", "F234", "F238", "F241", "F242", "F245", "F246", "F256", "F257", "F258", "F259", "F264", "F271", "F272", "F273", "F279", "F281", "F284", "F285", "F286", "F287", "F288", "F289", "F290", "F291", "F292", "F293", "F294", "F296", "F297", "F299", "F300", "F302", "F303", "F304", "F305", "F309", "F324", "F325", "F326", "F333", "F334", "F335", "F336", "F337", "F340", "F347", "F348", "F349", "F350", "F351", "F352", "F354", "F356", "F359", "F360", "F362", "F363", "F364", "F365", "F369", "F372", "F381", "F382", "F390", "F392", "F397", "F404", "F405", "F408", "F410", "F413", "F415", "F416", "F417", "F419", "F423", "F431", "F437", "F438", "F441", "F444", "F445", "F446", "F447", "F449", "F450", "F451", "F453", "F454", "F455", "F457", "F463", "F464", "F465", "F466", "F468", "F469", "F470", "F471", "F474", "G0", "G2", "G4", "G5", "G8", "G9", "G13", "G16", "G19", "G20", "G21", "G24", "G25", "G26", "G27", "G28", "G29", "G30", "G34", "G35", "G36", "G37", "G39", "G41", "G42", "G43", "G52", "G55", "G60", "S0", "S1", "S4", "S5", "S6", "S8", "S10", "S11", "S12", "S14", "S15", "S17", "S19", "S23", "S24", "S25", "S27", "S28", "T4", "T5", "T7", "T8", "T9", "T11", "T13", "T17", "T19", "T30", "T31", "T35", "T41", "T43"]);
+const inBook=f=>BOOK_FAMS.has(f)||/^[KB]\d\d$/.test(f);
+
 // ---------- the MLO Prep rule bank: several wordings of each rule, the rule being the "family" ----------
 const BANK=JSON.parse(document.getElementById('bank-data').textContent);
 const SEC_CAT=Object.freeze({I:'FED',II:'USC',III:'GMK',IV:'ORIG',V:'ETH'});
@@ -2126,6 +2415,7 @@ function classify(exposures,attempts,s,rng=Math.random,M=mastery(attempts)){
  const prefer=(q,cat)=>{if(s.mode==='learn')return q.level<3;if(!adapt||s.difficulty!=='mixed')return true;const c=M.cat[cat];if(!c.proven)return true;return c.acc>=0.85?q.level===3:c.acc<0.6?q.level<3:true};
  for(const [fam,f] of FAMILIES){
   if(s.category&&s.category!=='ALL'&&f.category!==s.category)continue;
+  if(s.set==='book'&&!inBook(fam))continue;          // Question set: Your study guide
   const ok=f.qs.filter(q=>candidatePasses(q,s));if(!ok.length)continue;
   counts.all+=ok.length;
   const e=exposures[fam],seen=new Set(e?.seenIds||[]),unseen=ok.filter(q=>!seen.has(q.id));
@@ -2537,11 +2827,12 @@ function fitHandwriting(c,n,actual){
 const KEY='safe-mlo-master-v1';
 const A5_BOOK=Object.freeze({width:148,height:210,ruleGap:6,lines:0});
 const DEFAULTS={
- schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',count:10,examCount:120,memory:'on'},
+ schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='4.6';
+const APP_VERSION='4.7';
 const WHATS_NEW=[
+ 'New on Practice and Exams: Question set. Choose "Your study guide (O\'Connor) topics" to practice only what your study guide tests, in the app\'s own wordings, a different question each time. Every rule written from the guide now has at least 3 wordings, so a review comes back worded a new way.',
  'New: 41 questions on 19 more rules from your study guide\'s chapter 4 to 9 quizzes: growing equity and biweekly loans, equity and net worth, the 5 percent credit card rule, who signs the note vs the mortgage, financed property limits, appraisal age, highest and best use, which appraisal approach fits, cap rate math, title policies, legal descriptions, encroachments, escrow items, funds to close, servicing retained vs released, FHA loan limits, and the commitment letter.',
  'New: 33 questions on 15 rules from your study guide\'s chapter 1 to 3 quizzes: hypothecation, grantor and grantee, assignor and assignee, junior liens, developer clauses, the Escrow Closing Notice, how long records are kept, what HMDA reports, credit bureaus vs FICO, Red Flags, Do Not Call exemptions, and Fair Housing traps. The Mortgage Call Report now teaches both parts: loan activity quarterly (45 days), financial condition yearly (90 days) for most companies.',
  'Stats now shows the exam outline with your score on it: each of the 5 areas with its share of the test and your %, and each topic under it with your %. Green is 75% or better; red is below. The Practice page\'s area and topic lists show your % too.',
@@ -2738,6 +3029,7 @@ function renderSetup(type){const s={...state.settings},MS=mastery(state.attempts
  <label class="field">Question style<select data-setting="difficulty"><option value="test-day" ${s.difficulty==='test-day'?'selected':''}>Test Day</option><option value="mixed" ${s.difficulty==='mixed'?'selected':''}>Mixed</option><option value="impossible" ${s.difficulty==='impossible'?'selected':''}>Impossible</option></select></label>
  <label class="field">Mathematics<select data-setting="math"><option value="normal" ${s.math==='normal'?'selected':''}>Normal</option><option value="fewer" ${s.math==='fewer'?'selected':''}>Fewer</option></select></label>
  <label class="field">True/false statement questions<select data-setting="statements"><option value="normal" ${s.statements!=='fewer'?'selected':''}>Normal (about half)</option><option value="fewer" ${s.statements==='fewer'?'selected':''}>Fewer (about 1 in 5)</option></select></label>
+ <label class="field">Question set<select data-setting="set"><option value="all" ${s.set!=='book'?'selected':''}>All questions</option><option value="book" ${s.set==='book'?'selected':''}>Your study guide (O'Connor) topics</option></select></label>
  <label class="field">NMLS category<select data-setting="category"><option value="ALL" ${s.category==='ALL'?'selected':''}>All 5 categories</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${s.category===k?'selected':''}>${k} — ${c.name}${scoreText(MS.cat[k])}</option>`).join('')}</select></label>
  <label class="field">Topic<select data-setting="code"><option value="">Any topic</option>${Object.keys(BANK.topics).filter(c=>s.category==='ALL'||SEC_CAT[c.split('.')[0]]===s.category).map(c=>`<option value="${c}" ${s.code===c?'selected':''}>${c} ${HTML(BANK.topics[c])}${scoreText(MS.topic[c])}</option>`).join('')}</select></label>
   </div><div class="divider"></div><div class="kpi-row"><span class="chip">✦ ${nfmt(counts.fresh)} fresh rules</span><span class="chip">↺ ${nfmt(counts.review)} missed rules</span><span class="chip">⟳ ${nfmt(counts.due)} due for a check</span><span class="chip">✎ ${nfmt(counts.again)} with a new wording left</span><span class="chip">▤ ${nfmt(counts.all)} questions in this filter</span></div>
@@ -3035,7 +3327,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261016045942-90fe9548',OPENED=Date.now();
+const BUILD='20261016051154-b6aa4124',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -3053,7 +3345,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,inBook,render:()=>render()};
 
 </script>
 </body>
