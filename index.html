@@ -2794,10 +2794,8 @@ scen('M24','V.1','12 CFR Part 1002 Supplement I; Interagency Fair Lending Examin
       ['Comparative evidence','The same rule applies to everyone.'],
       ['Steering','Steering points people to certain loans or places.']]}]);
 
-// ---------- the study-guide set: the bank rules that the printed study guide (both final exams and the chapter 1-9 quizzes) tests,
-// matched topic by topic, plus every rule written from the guide (K and B families). Practice can be limited to this set.
-const BOOK_FAMS=new Set(["F0", "F1", "F2", "F4", "F6", "F8", "F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F21", "F22", "F23", "F24", "F25", "F27", "F28", "F29", "F30", "F31", "F34", "F35", "F36", "F38", "F39", "F40", "F41", "F42", "F43", "F44", "F45", "F48", "F49", "F50", "F62", "F63", "F65", "F66", "F69", "F72", "F73", "F75", "F76", "F77", "F78", "F80", "F81", "F82", "F84", "F85", "F86", "F87", "F92", "F96", "F98", "F101", "F102", "F111", "F112", "F120", "F122", "F123", "F124", "F126", "F128", "F129", "F130", "F131", "F132", "F133", "F135", "F136", "F137", "F139", "F141", "F142", "F143", "F144", "F145", "F146", "F147", "F148", "F151", "F152", "F154", "F155", "F156", "F157", "F158", "F160", "F161", "F163", "F165", "F166", "F169", "F170", "F171", "F172", "F173", "F174", "F175", "F176", "F177", "F178", "F179", "F181", "F182", "F183", "F185", "F187", "F189", "F190", "F194", "F195", "F197", "F200", "F206", "F209", "F210", "F211", "F212", "F214", "F215", "F216", "F217", "F218", "F219", "F221", "F222", "F223", "F224", "F225", "F226", "F231", "F232", "F233", "F234", "F238", "F241", "F242", "F245", "F246", "F256", "F257", "F258", "F259", "F264", "F271", "F272", "F273", "F279", "F281", "F284", "F285", "F286", "F287", "F288", "F289", "F290", "F291", "F292", "F293", "F294", "F296", "F297", "F299", "F300", "F302", "F303", "F304", "F305", "F309", "F324", "F325", "F326", "F333", "F334", "F335", "F336", "F337", "F340", "F347", "F348", "F349", "F350", "F351", "F352", "F354", "F356", "F359", "F360", "F362", "F363", "F364", "F365", "F369", "F372", "F381", "F382", "F390", "F392", "F397", "F404", "F405", "F408", "F410", "F413", "F415", "F416", "F417", "F419", "F423", "F431", "F437", "F438", "F441", "F444", "F445", "F446", "F447", "F449", "F450", "F451", "F453", "F454", "F455", "F457", "F463", "F464", "F465", "F466", "F468", "F469", "F470", "F471", "F474", "G0", "G2", "G4", "G5", "G8", "G9", "G13", "G16", "G19", "G20", "G21", "G24", "G25", "G26", "G27", "G28", "G29", "G30", "G34", "G35", "G36", "G37", "G39", "G41", "G42", "G43", "G52", "G55", "G60", "S0", "S1", "S4", "S5", "S6", "S8", "S10", "S11", "S12", "S14", "S15", "S17", "S19", "S23", "S24", "S25", "S27", "S28", "T4", "T5", "T7", "T8", "T9", "T11", "T13", "T17", "T19", "T30", "T31", "T35", "T41", "T43"]);
-const inBook=f=>BOOK_FAMS.has(f)||/^[KB]\d\d$/.test(f);
+// ---------- the new-questions set: every rule written from his courses (360training-style stories N, study-guide basics K and B, Mortgage Educators M).
+const isNew=f=>/^[NKBM]\d\d$/.test(f);
 
 // ---------- the MLO Prep rule bank: several wordings of each rule, the rule being the "family" ----------
 const BANK=JSON.parse(document.getElementById('bank-data').textContent);
@@ -2905,7 +2903,7 @@ function classify(exposures,attempts,s,rng=Math.random,M=mastery(attempts)){
  const prefer=(q,cat)=>{if(s.mode==='learn')return q.level<3;if(!adapt||s.difficulty!=='mixed')return true;const c=M.cat[cat];if(!c.proven)return true;return c.acc>=0.85?q.level===3:c.acc<0.6?q.level<3:true};
  for(const [fam,f] of FAMILIES){
   if(s.category&&s.category!=='ALL'&&f.category!==s.category)continue;
-  if(s.set==='book'&&!inBook(fam))continue;          // Question set: Your study guide
+  if(s.set==='new'&&!isNew(fam))continue;            // Question set: New questions from your courses
   const ok=f.qs.filter(q=>candidatePasses(q,s));if(!ok.length)continue;
   counts.all+=ok.length;
   const e=exposures[fam],seen=new Set(e?.seenIds||[]),unseen=ok.filter(q=>!seen.has(q.id));
@@ -3320,8 +3318,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='4.8';
+const APP_VERSION='4.9';
 const WHATS_NEW=[
+ 'Question set now offers "New questions from your courses": only the questions written from your 360training screenshots, the O\'Connor study guide, and the Mortgage Educators textbook (132 topics). The O\'Connor-only set is gone; its questions are in the new set, and nothing you did was lost.',
  'New: 72 questions on 24 topics from your Mortgage Educators textbook: agency history, the 3-year education rule vs the 5-year retest, NMLS forms, the four Cs, FHA limits, the 2006 and 2007 guidance, RESPA exemptions, rescission refunds, TILA penalties, the ability-to-repay factors, HOEPA tests, MDIA, Do Not Call permission and texts, OFAC, the booklets, grossing up income, what counts as debt, credit report timelines, waiting periods, USPAP, ownership terms, flood insurance, fraud types, and disparate treatment.',
  'New on Practice and Exams: Question set. Choose "Your study guide (O\'Connor) topics" to practice only what your study guide tests, in the app\'s own wordings, a different question each time. Every rule written from the guide now has at least 3 wordings, so a review comes back worded a new way.',
  'New: 41 questions on 19 more rules from your study guide\'s chapter 4 to 9 quizzes: growing equity and biweekly loans, equity and net worth, the 5 percent credit card rule, who signs the note vs the mortgage, financed property limits, appraisal age, highest and best use, which appraisal approach fits, cap rate math, title policies, legal descriptions, encroachments, escrow items, funds to close, servicing retained vs released, FHA loan limits, and the commitment letter.',
@@ -3352,6 +3351,7 @@ function loadState(storage){
  if(!raw)return structuredClone(DEFAULTS);
  try{const data=JSON.parse(raw);if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Invalid state');
   const st={...structuredClone(DEFAULTS),...data,settings:{...DEFAULTS.settings,...data.settings},notebook:{...DEFAULTS.notebook,...data.notebook},notesView:{...DEFAULTS.notesView,...data.notesView},page:{...DEFAULTS.page,...data.page},plan:{...DEFAULTS.plan,...data.plan},exposures:data.exposures&&typeof data.exposures==='object'?data.exposures:{},reports:Array.isArray(data.reports)?data.reports:[],attempts:Array.isArray(data.attempts)?data.attempts:[],notes:Array.isArray(data.notes)?data.notes:[],sessions:Array.isArray(data.sessions)?data.sessions:[]};
+  if(st.settings.set!=='new')st.settings.set='all';     // 4.9: the study-guide set is gone; anything else is All questions
   if(!data.schema){            // first open after the upgrade: the old letter-size page becomes an A5 page unless it was changed by hand
    const nb=data.notebook||{};if((!nb.width||nb.width===190)&&(!nb.height||nb.height===260))st.notebook={...A5_BOOK};
    st.schema=2;
@@ -3520,7 +3520,7 @@ function renderSetup(type){const s={...state.settings},MS=mastery(state.attempts
  <label class="field">Question style<select data-setting="difficulty"><option value="test-day" ${s.difficulty==='test-day'?'selected':''}>Test Day</option><option value="mixed" ${s.difficulty==='mixed'?'selected':''}>Mixed</option><option value="impossible" ${s.difficulty==='impossible'?'selected':''}>Impossible</option></select></label>
  <label class="field">Mathematics<select data-setting="math"><option value="normal" ${s.math==='normal'?'selected':''}>Normal</option><option value="fewer" ${s.math==='fewer'?'selected':''}>Fewer</option></select></label>
  <label class="field">True/false statement questions<select data-setting="statements"><option value="normal" ${s.statements!=='fewer'?'selected':''}>Normal (about half)</option><option value="fewer" ${s.statements==='fewer'?'selected':''}>Fewer (about 1 in 5)</option></select></label>
- <label class="field">Question set<select data-setting="set"><option value="all" ${s.set!=='book'?'selected':''}>All questions</option><option value="book" ${s.set==='book'?'selected':''}>Your study guide (O'Connor) topics</option></select></label>
+ <label class="field">Question set<select data-setting="set"><option value="all" ${s.set!=='new'?'selected':''}>All questions</option><option value="new" ${s.set==='new'?'selected':''}>New questions from your courses</option></select></label>
  <label class="field">NMLS category<select data-setting="category"><option value="ALL" ${s.category==='ALL'?'selected':''}>All 5 categories</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${s.category===k?'selected':''}>${k} — ${c.name}${scoreText(MS.cat[k])}</option>`).join('')}</select></label>
  <label class="field">Topic<select data-setting="code"><option value="">Any topic</option>${Object.keys(BANK.topics).filter(c=>s.category==='ALL'||SEC_CAT[c.split('.')[0]]===s.category).map(c=>`<option value="${c}" ${s.code===c?'selected':''}>${c} ${HTML(BANK.topics[c])}${scoreText(MS.topic[c])}</option>`).join('')}</select></label>
   </div><div class="divider"></div><div class="kpi-row"><span class="chip">✦ ${nfmt(counts.fresh)} fresh rules</span><span class="chip">↺ ${nfmt(counts.review)} missed rules</span><span class="chip">⟳ ${nfmt(counts.due)} due for a check</span><span class="chip">✎ ${nfmt(counts.again)} with a new wording left</span><span class="chip">▤ ${nfmt(counts.all)} questions in this filter</span></div>
@@ -3818,7 +3818,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261017195748-e2695b28',OPENED=Date.now();
+const BUILD='20261017200714-eddaae8b',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -3836,7 +3836,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,inBook,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,render:()=>render()};
 
 </script>
 </body>
