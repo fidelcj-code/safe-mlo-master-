@@ -109,6 +109,8 @@
 .table.topics .score-cell{text-align:right;white-space:nowrap;vertical-align:top}.table.topics .score{font-weight:800;font-size:1.02rem}.table.topics .score.good{color:#5ee6a8}.table.topics .score.bad{color:#ff6b8b}.table.topics .learn-btn{margin-top:6px;padding:4px 10px;font-size:.78rem}.mini-track{height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:7px;overflow:hidden}.mini-fill{height:100%;border-radius:3px;background:#a98bc4}.mini-fill.good{background:#5ee6a8}.mini-fill.bad{background:#ff6b8b}
 
 .hero p.welcome{margin:0;font-size:clamp(1.25rem,4.6vw,1.6rem);font-weight:800;letter-spacing:.01em;line-height:1.2;background:linear-gradient(100deg,#fff 0%,#f2a6e6 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.trap-list,.go-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}.trap{border:1px solid rgba(235,167,244,.18);border-radius:14px;padding:12px;background:rgba(255,255,255,.02)}.trap p{margin:6px 0 0;font-size:.92rem;line-height:1.45}.trap-top{display:flex;justify-content:space-between;align-items:center}.lbl.trap-bad{color:#ff8fa8}.lbl.trap-good{color:#5ee6a8}.go-list li{display:flex;gap:10px;align-items:flex-start;font-size:.93rem}.go-list .dot{flex:0 0 12px;height:12px;border-radius:50%;margin-top:5px;background:#ff6b8b;box-shadow:0 0 8px #ff6b8b88}.go-list li.on .dot{background:#5ee6a8;box-shadow:0 0 8px #5ee6a888}
 </style>
 </head>
 <body>
@@ -2905,6 +2907,7 @@ function classify(exposures,attempts,s,rng=Math.random,M=mastery(attempts)){
  const prefer=(q,cat)=>{if(s.mode==='learn')return q.level<3;if(!adapt||s.difficulty!=='mixed')return true;const c=M.cat[cat];if(!c.proven)return true;return c.acc>=0.85?q.level===3:c.acc<0.6?q.level<3:true};
  for(const [fam,f] of FAMILIES){
   if(s.category&&s.category!=='ALL'&&f.category!==s.category)continue;
+  if(s.only&&!s.only.includes(fam))continue;          // Practice my traps: only these rules
   if(s.set==='new'&&!isNew(fam))continue;            // Question set: New questions from your courses
   let ok=f.qs.filter(q=>candidatePasses(q,s));if(s.statements==='more')ok=ok.filter(q=>q.isStmt);if(!ok.length)continue;   // More: only true/false statement questions
   counts.all+=ok.length;
@@ -3320,8 +3323,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='5.1';
+const APP_VERSION='5.2';
 const WHATS_NEW=[
+ 'New on Home: Go or no-go, four green lights to hit before your ready check (rules seen, every area 75%, "Which is TRUE?" 70%, your last two full-length exams 80%). And My traps: the rules you keep missing, your own wrong pick next to the truth, with a button to practice just those.',
  'Home now greets you: Welcome Fidel Crispin JR.',
  'New on Practice: True/false statement questions now has "More (only these, to drill them)". Every question in the set is a find-the-TRUE, find-the-FALSE, EXCEPT, or double-negative question, your weakest style. Read each choice to the last word: the twist is usually a number or the last part of the sentence. Timed exams keep the normal mix.',
  'Question set now offers "New questions from your courses": only the questions written from your 360training screenshots, the O\'Connor study guide, and the Mortgage Educators textbook (132 topics). The O\'Connor-only set is gone; its questions are in the new set, and nothing you did was lost.',
@@ -3500,10 +3504,57 @@ function learnCard(q,s){
  <div class="question-footer"><div class="actions">${button('check','Check me on it →','primary')}</div><div class="actions">${s.cursor?button('previous','← Previous','ghost'):''}${button('end-session','Finish','ghost')}</div></div></section>`;
 }
 function whatsNew(){return state.seenVersion===APP_VERSION?'':`<section class="panel whatsnew"><div class="section-head"><h3>Updated to version ${APP_VERSION}</h3>${button('dismiss-new','Got it','sm ghost')}</div><ul>${WHATS_NEW.map(x=>`<li>${HTML(x)}</li>`).join('')}</ul></section>`}
+// ---------- My traps: the rules he keeps getting wrong, his own wrong pick next to the truth, until answered right twice in a row ----------
+function trapList(){
+ const M=mastery(state.attempts),last={},misses={};
+ for(const a of state.attempts){if(a.correct)continue;misses[a.family]=(misses[a.family]||0)+1;if(Number.isInteger(a.selected))last[a.family]=a}
+ const traps=[];let fixed=0;
+ for(const [f,a] of Object.entries(last)){const q=QMAP.get(a.questionId);if(!q||!q.choices[a.selected])continue;
+  if((M.fam[f]?.streak||0)>=2){fixed++;continue}
+  traps.push({f,q,pick:a.selected,misses:misses[f],at:Date.parse(a.answeredAt)||0})}
+ traps.sort((x,y)=>y.misses-x.misses||y.at-x.at);
+ return {traps,fixed};
+}
+function trapCard(t,sp){
+ const q=t.q,reason=minimalReason(q,t.pick,sp,true),rule=sp(q.definition.replace(FALSE_PREFIX,''));
+ return `<li class="trap"><div class="trap-top"><span class="chip">${HTML(q.code||'')}</span><span class="muted small">missed ${t.misses}×</span></div>
+  <p><b class="lbl trap-bad">You picked</b> ${HTML(sp(q.choices[t.pick]))}</p>${reason?`<p><b class="lbl">Why it's wrong</b> ${flipHTML(reason)}</p>`:''}
+  <p><b class="lbl trap-good">Remember</b> ${HTML(rule)}</p></li>`;
+}
+function trapsPanel(){
+ const {traps,fixed}=trapList(),sp=speller(),top=traps.slice(0,4),rest=traps.slice(4);
+ return `<div class="panel traps"><div class="section-head"><h3>My traps</h3><span class="chip">${traps.length} to fix${fixed?` · ${fixed} fixed`:''}</span></div>
+  <p class="muted small">What you picked, why it's wrong, and the rule to remember. Read them for 5 minutes before you practice. A trap is fixed when you get that rule right twice in a row.</p>
+  ${traps.length?`<ul class="trap-list">${top.map(t=>trapCard(t,sp)).join('')}</ul>${rest.length?`<details class="why-more"><summary>Show all ${traps.length}</summary><ul class="trap-list">${rest.map(t=>trapCard(t,sp)).join('')}</ul></details>`:''}
+  <div class="actions" style="margin-top:12px">${button('drill-traps',`Practice my traps (${Math.min(20,traps.length)}) →`,'primary sm')}</div>`:`<p class="small" style="margin-top:8px">${fixed?'No open traps right now. Keep going.':'No traps yet. Every rule you miss will show up here.'}</p>`}</div>`;
+}
+// ---------- the go/no-go for the ready check: four green lights before sitting the third attempt ----------
+const GO_LINES=['Seen 90% of the rules','Every area at 75% or better','"Which is TRUE?" questions at 70% or better','Last 2 full-length exams at 80% or better'];
+function goSignals(){
+ const m=metricSummary(QUESTIONS,state.exposures,state.attempts),M=mastery(state.attempts);
+ const cover=m.total?m.answered/m.total:0;
+ const weak=CAT_CODES.filter(k=>!M.cat[k].proven||M.cat[k].acc<0.75);
+ const st=state.attempts.filter(a=>QMAP.get(a.questionId)?.isStmt).slice(-40),stAcc=st.length?st.reduce((x,a)=>x+credit(a),0)/st.length:null;
+ const fulls=state.sessions.filter(x=>x.type==='exam'&&x.total===120).slice(-2);
+ const lights=[
+  {ok:cover>=0.9,note:`${Math.round(cover*100)}% seen (${nfmt(m.answered)} of ${nfmt(m.total)})`},
+  {ok:!weak.length,note:weak.length?`Not yet: ${weak.join(', ')}`:'All five areas'},
+  {ok:st.length>=20&&stAcc>=0.7,note:st.length>=20?`${Math.round(stAcc*100)}% of your last ${st.length}`:`${20-st.length} more needed to measure`},
+  {ok:fulls.length===2&&fulls.every(x=>x.pct>=80),note:fulls.length?fulls.map(x=>x.pct+'%').join(' and '):'None taken yet'}];
+ return {lights,green:lights.filter(l=>l.ok).length};
+}
+function goPanel(){
+ const I=planInfo(),{lights,green}=goSignals(),all=green===lights.length;
+ const when=I.dReady>0?`Your ready check is ${fmtDay(I.ready)}, in ${I.dReady} day${I.dReady===1?'':'s'}.`:I.dExam>=0?'Ready check time: decide now.':'';
+ return `<div class="panel go"><div class="section-head"><h3>Go or no-go</h3><span class="chip ${all?'st-ready':'st-building'}">${all?'GO':`${green} of ${lights.length} green`}</span></div>
+  <p class="muted small">${when} All four green means sit the exam. Any red means think about moving the date: a third miss in a row means waiting 180 days to test again.</p>
+  <ul class="go-list">${lights.map((l,i)=>`<li class="${l.ok?'on':'off'}"><span class="dot" aria-hidden="true"></span><span><b>${HTML(GO_LINES[i])}</b><br><span class="muted small">${HTML(l.note)}</span></span></li>`).join('')}</ul></div>`;
+}
 function renderDashboard(){
  const m=metricSummary(QUESTIONS,state.exposures,state.attempts);const cats=byCategoryMetrics(state.attempts);
  const todo=state.notes.filter(n=>!n.written).length;
  return `${whatsNew()}<section class="hero"><p class="welcome">Welcome Fidel Crispin JR</p><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}</div></section>
+ <section class="section two-col equal"><div>${goPanel()}</div><div>${trapsPanel()}</div></section>
  <section class="section two-col equal"><div>${planPanel()}</div><div>${readinessPanel()}</div></section>
  <section class="section"><div class="section-head"><h2>Your journey in numbers</h2><span class="chip">${nfmt(QUESTIONS.length)} questions · ${nfmt(m.total)} rules</span></div>
  <div class="stats"><div class="stat"><span class="stat-icon">✦</span><p class="meta">Rules Answered</p><div class="number">${nfmt(m.answered)}</div><p class="meta">Across all sessions</p></div><div class="stat"><span class="stat-icon">◈</span><p class="meta">Fresh Rules Left</p><div class="number">${nfmt(m.fresh)}</div><p class="meta">Never seen yet</p></div><div class="stat"><span class="stat-icon">◉</span><p class="meta">First-Attempt Accuracy</p><div class="number">${pct(m.firstAccuracy)}</div><p class="meta">${m.firstCount} completed first attempts</p></div></div></section>
@@ -3575,6 +3626,8 @@ function buildReport(){
   `Readiness: ${R.status==='collecting'?'collecting':R.score+'% ('+R.status+')'} · rules answered ${m.answered} · fresh left ${m.fresh} · first-try accuracy ${m.firstAccuracy??'none'}%`,
   `Recent by area: ${areas}`,
   `By question style: ${styles}`,
+  (()=>{const g=goSignals();return `Go/no-go: ${g.green} of 4 green · `+g.lights.map((l,i)=>`${GO_LINES[i]}: ${l.ok?'yes':'no'} (${l.note})`).join(' · ')})(),
+  (()=>{const t=trapList();return `My traps: ${t.traps.length} open, ${t.fixed} fixed`+(t.traps.length?` · top: `+t.traps.slice(0,5).map(x=>`${x.q.id} picked "${clip(x.q.choices[x.pick],60)}"`).join(' · '):'')})(),
   `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missedRules.length}):`,...(missed.length?missed:['- none']),'',`Flagged questions (${state.notes.filter(n=>n.flagged).length}):`,...(flagged.length?flagged:['- none']),'',`Guessed (${gAt.length} answers, ${gRight} right by luck):`,...(guesses.length?guesses:['- none']),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
 }
 // the note, the same everywhere: Topic, Question, Answer, Why it's right, and Why it's wrong only when you picked a wrong answer
@@ -3764,7 +3817,7 @@ document.addEventListener('click',e=>{
  const remove=e.target.closest('[data-delete-note]');if(remove){if(confirm('Delete this notebook entry?')){state.notes=state.notes.filter(x=>x.id!==remove.dataset.deleteNote);persist();render()}return}
  const act=e.target.closest('[data-act]');if(!act)return;const a=act.dataset.act;const s=currentSession();
  switch(a){
- case 'dash-practice':navigate('practice');break;case 'dash-exam':navigate('exam');break;case 'dash-notebook':navigate('notebook');break;case 'dash-analytics':navigate('analytics');break;
+ case 'dash-practice':navigate('practice');break;case 'drill-traps':{const t=trapList().traps;if(t.length)startSession('practice',{mode:'adaptive',only:t.map(x=>x.f),count:Math.min(20,t.length)});break}case 'dash-exam':navigate('exam');break;case 'dash-notebook':navigate('notebook');break;case 'dash-analytics':navigate('analytics');break;
  case 'start-practice':startSession('practice');break;
  case 'full-exam':startSession('exam',{count:120,mode:'adaptive',difficulty:'mixed',category:'ALL',code:''});break;case 'start-exam':startSession('exam');break;
  case 'review-missed':{const r=state.sessions.find(x=>x.id===state.lastResult),missed=r?r.total-r.correct:10;startSession('practice',{mode:'review',category:'ALL',difficulty:'mixed',count:Math.min(30,Math.max(5,missed))});break}
@@ -3822,7 +3875,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261019171856-1d33e27a',OPENED=Date.now();
+const BUILD='20261019213918-dc399253',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -3840,7 +3893,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,render:()=>render()};
 
 </script>
 </body>
