@@ -107,6 +107,8 @@
 
 .table.topics tr.area td{padding-top:16px;border-top:1px solid rgba(235,167,244,.28)}.table.topics tr.area b{color:#eba7f4}.table.topics tr.area:first-child td{border-top:0}.table.topics tr.topic-row td:first-child{padding-left:14px}
 .table.topics .score-cell{text-align:right;white-space:nowrap;vertical-align:top}.table.topics .score{font-weight:800;font-size:1.02rem}.table.topics .score.good{color:#5ee6a8}.table.topics .score.bad{color:#ff6b8b}.table.topics .learn-btn{margin-top:6px;padding:4px 10px;font-size:.78rem}.mini-track{height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:7px;overflow:hidden}.mini-fill{height:100%;border-radius:3px;background:#a98bc4}.mini-fill.good{background:#5ee6a8}.mini-fill.bad{background:#ff6b8b}
+
+.hero p.welcome{margin:0;font-size:clamp(1.25rem,4.6vw,1.6rem);font-weight:800;letter-spacing:.01em;line-height:1.2;background:linear-gradient(100deg,#fff 0%,#f2a6e6 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
 </style>
 </head>
 <body>
@@ -3318,8 +3320,9 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='5.0';
+const APP_VERSION='5.1';
 const WHATS_NEW=[
+ 'Home now greets you: Welcome Fidel Crispin JR.',
  'New on Practice: True/false statement questions now has "More (only these, to drill them)". Every question in the set is a find-the-TRUE, find-the-FALSE, EXCEPT, or double-negative question, your weakest style. Read each choice to the last word: the twist is usually a number or the last part of the sentence. Timed exams keep the normal mix.',
  'Question set now offers "New questions from your courses": only the questions written from your 360training screenshots, the O\'Connor study guide, and the Mortgage Educators textbook (132 topics). The O\'Connor-only set is gone; its questions are in the new set, and nothing you did was lost.',
  'New: 72 questions on 24 topics from your Mortgage Educators textbook: agency history, the 3-year education rule vs the 5-year retest, NMLS forms, the four Cs, FHA limits, the 2006 and 2007 guidance, RESPA exemptions, rescission refunds, TILA penalties, the ability-to-repay factors, HOEPA tests, MDIA, Do Not Call permission and texts, OFAC, the booklets, grossing up income, what counts as debt, credit report timelines, waiting periods, USPAP, ownership terms, flood insurance, fraud types, and disparate treatment.',
@@ -3500,7 +3503,7 @@ function whatsNew(){return state.seenVersion===APP_VERSION?'':`<section class="p
 function renderDashboard(){
  const m=metricSummary(QUESTIONS,state.exposures,state.attempts);const cats=byCategoryMetrics(state.attempts);
  const todo=state.notes.filter(n=>!n.written).length;
- return `${whatsNew()}<section class="hero"><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}</div></section>
+ return `${whatsNew()}<section class="hero"><p class="welcome">Welcome Fidel Crispin JR</p><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}</div></section>
  <section class="section two-col equal"><div>${planPanel()}</div><div>${readinessPanel()}</div></section>
  <section class="section"><div class="section-head"><h2>Your journey in numbers</h2><span class="chip">${nfmt(QUESTIONS.length)} questions · ${nfmt(m.total)} rules</span></div>
  <div class="stats"><div class="stat"><span class="stat-icon">✦</span><p class="meta">Rules Answered</p><div class="number">${nfmt(m.answered)}</div><p class="meta">Across all sessions</p></div><div class="stat"><span class="stat-icon">◈</span><p class="meta">Fresh Rules Left</p><div class="number">${nfmt(m.fresh)}</div><p class="meta">Never seen yet</p></div><div class="stat"><span class="stat-icon">◉</span><p class="meta">First-Attempt Accuracy</p><div class="number">${pct(m.firstAccuracy)}</div><p class="meta">${m.firstCount} completed first attempts</p></div></div></section>
@@ -3819,7 +3822,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261017215546-f92a80aa',OPENED=Date.now();
+const BUILD='20261019171856-1d33e27a',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
