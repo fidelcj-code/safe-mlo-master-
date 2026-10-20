@@ -352,6 +352,58 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opa
 }
 @media(prefers-reduced-motion:reduce){body::before,.hero::before,.btn.primary::after,.chip.qclock.low,.ring-fg,.choices.just .choice{animation:none!important}}
 button.chip.qclock{cursor:pointer;font:inherit;font-size:.7rem;font-weight:750}
+
+/* ===== 5.8 · Luxe: motion between screens, verdict banners, confetti, custom menus, glass toasts, a wordmark ===== */
+.topbar .wordmark{font-family:var(--sans);font-weight:800;letter-spacing:.07em;background:linear-gradient(100deg,#e2c4ff,#a9a2ff 50%,#8fbaff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.main.enter>*:not(.topbar){animation:fadeUp .5s cubic-bezier(.2,.8,.2,1) both}
+.main.enter>*:nth-child(3){animation-delay:.05s}.main.enter>*:nth-child(4){animation-delay:.1s}.main.enter>*:nth-child(5){animation-delay:.15s}.main.enter>*:nth-child(n+6){animation-delay:.2s}
+@keyframes fadeUp{from{opacity:0;transform:translate3d(0,16px,0)}to{opacity:1;transform:none}}
+.q-panel.q-enter{animation:qin .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes qin{from{opacity:0;transform:translate3d(0,12px,0) scale(.985)}to{opacity:1;transform:none}}
+.main{overflow-x:clip}
+.q-panel>.question-head>.actions:first-child .chip+.chip{display:none}     /* the topic is already in the header */
+
+/* the verdict after you answer */
+.notice.verdict{display:flex;align-items:center;gap:12px;font-weight:700;font-size:.93rem;border-radius:16px;padding:13px 15px}
+.notice.verdict::before{content:"✓";flex:0 0 30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:.95rem;background:var(--success);color:#04140d;box-shadow:0 0 18px rgba(62,224,161,.6)}
+.notice.verdict.success{background:linear-gradient(120deg,rgba(62,224,161,.17),rgba(62,224,161,.05));border-color:rgba(62,224,161,.55);color:#cdf8e8}
+.notice.verdict.warn{background:linear-gradient(120deg,rgba(255,84,112,.19),rgba(255,84,112,.05));border-color:rgba(255,84,112,.55);color:#ffd3da}
+.notice.verdict.warn::before{content:"✕";background:var(--danger);color:#fff;box-shadow:0 0 18px rgba(255,84,112,.6)}
+.choice .letter{position:relative;transition:box-shadow .2s,border-color .2s}
+.choice:hover:not(:disabled) .letter{border-color:#a28dff;box-shadow:0 0 14px rgba(122,60,245,.5)}
+.choices.just .choice.correct .letter::after{content:"";position:absolute;inset:-3px;border-radius:12px;border:2px solid var(--success);animation:ripple .85s ease-out forwards;pointer-events:none}
+@keyframes ripple{from{opacity:.95;transform:scale(1)}to{opacity:0;transform:scale(2.3)}}
+
+/* confetti */
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+.confetti i{position:absolute;top:-24px;left:var(--x);width:9px;height:15px;border-radius:2px;animation:fall var(--t) cubic-bezier(.25,.6,.45,1) var(--d) both}
+@keyframes fall{0%{opacity:1;transform:translate3d(0,0,0) rotate(0) scale(var(--s))}100%{opacity:0;transform:translate3d(var(--w),108vh,0) rotate(var(--r)) scale(var(--s))}}
+
+/* menus and labels */
+.field{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:#b9a4ff;font-weight:800}
+.field select,.field input,.field textarea{text-transform:none;letter-spacing:normal;font-size:.95rem;font-weight:600;color:#fff}
+.field select{-webkit-appearance:none;appearance:none;padding-right:42px;background-color:rgba(6,3,14,.92);
+ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b9a4ff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+ background-repeat:no-repeat;background-position:right 14px center}
+.field select:disabled{opacity:.6}
+.mode-emoji{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;font-size:1.15rem;background:linear-gradient(140deg,rgba(155,32,234,.38),rgba(63,47,203,.26));border:1px solid rgba(165,125,255,.38);box-shadow:0 0 18px rgba(122,60,245,.28)}
+.mode-card.active .mode-emoji{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.38);color:#fff}
+
+/* glass toasts */
+.toast{color:#fff;border:1px solid transparent;border-radius:16px;font-weight:700;
+ background:linear-gradient(rgba(18,8,38,.94),rgba(18,8,38,.94)) padding-box,var(--grad) border-box;
+ -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 30px rgba(122,60,245,.32);animation:toastin .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes toastin{from{opacity:0;transform:translateY(-10px) scale(.97)}}
+
+/* tables and scrollbars */
+.table tbody tr:hover td{background:rgba(122,60,245,.07)}
+@media(min-width:761px){::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#050208}::-webkit-scrollbar-thumb{background:linear-gradient(#9B20EA,#3F2FCB);border-radius:10px;border:2px solid #050208}}
+@media(prefers-reduced-motion:reduce){.main.enter>*,.q-panel.q-enter,.toast,.confetti,.choices.just .choice .letter::after{animation:none!important}.confetti{display:none}}
+.field-grid>*{min-width:0}.field select{min-width:0;max-width:100%;text-overflow:ellipsis}
+@media(max-width:760px){.field-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(max-width:400px){.field-grid{grid-template-columns:minmax(0,1fr)}}
+.topbar .wordmark{white-space:nowrap}
+@media(max-width:760px){.topbar .crumb{display:flex;flex-direction:column;gap:2px;line-height:1.25}.topbar .crumb-sep{display:none}.topbar .wordmark{font-size:.72rem}}
 </style>
 </head>
 <body>
@@ -3579,7 +3631,7 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',clock:'on',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='5.7';
+const APP_VERSION='5.8';
 const CALC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="5.8" width="8" height="3.6" rx="1"/><path d="M8.6 13h.01M12 13h.01M15.4 13h.01M8.6 16.6h.01M12 16.6h.01M15.4 16.6h.01" stroke-width="2.6"/></svg>';   // 5.4: the calculator button (calc.js)
 const WHATS_NEW=[
  'New on Home: Go or no-go, four green lights to hit before your ready check (rules seen, every area 75%, "Which is TRUE?" 70%, your last two full-length exams 80%). And My traps: the rules you keep missing, your own wrong pick next to the truth, with a button to practice just those.',
@@ -3656,11 +3708,12 @@ function sectionTitle(title,sub=''){return `<div class="screen-title"><h2>${titl
 function layout(content){
  const nav=navs.map(([key,label])=>`<button type="button" data-route="${key}" class="${state.route===key?'active':''}"><span class="symbol">${icon[key]}</span>${label}</button>`).join('');
  const mobi=navs.map(([key])=>`<button data-route="${key}" class="${state.route===key||(state.route==='results'&&key==='analytics')?'active':''}"><span>${icon[key]}</span>${short[key]}</button>`).join('');
- app.innerHTML=`<aside class="sidebar"><a class="brand" href="#dashboard" data-route="dashboard"><span class="brand-icon">✧</span><span class="brand-text">SAFE MLO<br/><em>MASTERY</em></span></a><nav class="nav" aria-label="Main navigation">${nav}</nav><div class="side-bottom"><strong>ORIGINAL STUDY PLATFORM</strong><p class="fineprint" style="margin-top:7px">${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules. Progress saved to this browser only.</p></div></aside><main class="main"><header class="topbar"><span>SAFE MLO MASTERY <span class="crumb-sep">/</span> ${HTML(state.route==='results'?'Results':navs.find(n=>n[0]===state.route)?.[1]||'Dashboard')}</span><div class="top-right"><button type="button" class="calc-top" data-calc-open aria-label="Open calculator">${CALC_SVG}</button><span class="top-pill">${readyPill()}</span></div></header>${content}<footer class="section fineprint">Independent educational project · Not affiliated with NMLS · Content must be reviewed for regulatory updates. <a href="${HTML(SOURCES.NMLS)}" target="_blank" rel="noopener noreferrer">Official NMLS outline ↗</a></footer></main><nav class="mobile-nav" aria-label="Mobile navigation">${mobi}</nav>`;
+ app.innerHTML=`<aside class="sidebar"><a class="brand" href="#dashboard" data-route="dashboard"><span class="brand-icon">✧</span><span class="brand-text">SAFE MLO<br/><em>MASTERY</em></span></a><nav class="nav" aria-label="Main navigation">${nav}</nav><div class="side-bottom"><strong>ORIGINAL STUDY PLATFORM</strong><p class="fineprint" style="margin-top:7px">${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules. Progress saved to this browser only.</p></div></aside><main class="main${ENTER?' enter':''}"><header class="topbar"><span class="crumb"><b class="wordmark">SAFE MLO MASTERY</b> <span class="crumb-sep">/</span> ${HTML(state.route==='results'?'Results':navs.find(n=>n[0]===state.route)?.[1]||'Dashboard')}</span><div class="top-right"><button type="button" class="calc-top" data-calc-open aria-label="Open calculator">${CALC_SVG}</button><span class="top-pill">${readyPill()}</span></div></header>${content}<footer class="section fineprint">Independent educational project · Not affiliated with NMLS · Content must be reviewed for regulatory updates. <a href="${HTML(SOURCES.NMLS)}" target="_blank" rel="noopener noreferrer">Official NMLS outline ↗</a></footer></main><nav class="mobile-nav" aria-label="Mobile navigation">${mobi}</nav>`;
 }
-function readyPill(){const R=readiness(mastery(state.attempts),state.sessions);return R.status==='collecting'?'✦ <span class="pill-word">READINESS: </span>COLLECTING':`✦ <span class="pill-word">READINESS </span>${R.score}%`}
+function readyPill(){const R=readiness(mastery(state.attempts),state.sessions);return R.status==='collecting'?'✦ <span class="pill-word">READINESS </span>—':`✦ <span class="pill-word">READINESS </span>${R.score}%`}
 function render(){if(state.active?.type==='exam'&&Date.now()>=state.active.deadlineAt){finishSession(true);return}
  const routes={dashboard:renderDashboard,practice:()=>renderSetup('practice'),exam:()=>renderSetup('exam'),notebook:renderNotebook,analytics:renderAnalytics,settings:renderSettings,results:renderResults};
+ ENTER=state.route!==LAST_ROUTE;LAST_ROUTE=state.route;   // 5.8: a new screen fades up; a redraw of the same one does not
  layout((state.active&&state.active.type===state.route)?renderSession():routes[state.route]?.()||renderDashboard());
  updateTimer();
 }
@@ -3855,13 +3908,14 @@ function renderSession(){const s=currentSession();if(!s)return renderSetup(state
  const isExam=s.type==='exam';const answered=Object.keys(s.answers).length;const perm=s.perm[q.id];
  const note=revealed?state.notes.find(n=>n.session===s.id&&n.qid===q.id):null;
  setTimeout(()=>{JUST=null},0);
+ const qk=s.id+':'+s.cursor+':'+q.id,qEnter=qk!==LAST_QK;LAST_QK=qk;
  if(s.clock&&!revealed){s.qStart=s.qStart||{};if(!s.qStart[q.id])s.qStart[q.id]=Date.now()}
  const y=s.yolo,yEnd=y&&revealed&&choice===q.correct&&(y.won||s.cursor>=s.questions.length-1),timed=!!s.timedOut?.[q.id],lvl=s.difficulty&&s.difficulty!=='standard'&&s.difficulty!=='mixed'&&!y?` · ${(LEVEL_NAME[s.difficulty]||'').toUpperCase()}`:'';
  return `<div class="question-head"><div><span class="eyebrow${y?' yolo-eyebrow':''}">${y?`⚡ YOLO · ${y.streak} IN A ROW · BEST ${Math.max(y.best,state.yolo?.best||0)}`:(isExam?(s.questions.length===120?'FULL-LENGTH EXAM':'TIMED MINI-EXAM'):s.learn?'LEARN, THEN CHECK':'FOCUSED PRACTICE')+lvl}</span><h2 style="margin-top:9px">Question ${s.cursor+1} <span class="muted">of ${s.questions.length}</span></h2></div><div class="actions"><span class="chip">${HTML(q.category)} · ${HTML(q.topic)}</span>${isExam?'<span class="chip pink" id="timer" role="timer">⏱ --:--</span>':''}${s.clock&&!revealed?`<button type="button" class="chip qclock${clockLeft(s,q.id)<=10?' low':''}" id="qclock" role="timer" data-act="clock-off" aria-label="Time left. Tap to turn the clock off for this set">${clockText(clockLeft(s,q.id))}</button>`:''}</div></div>
  <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(answered/s.questions.length*100)}"><div class="progress-fill" style="width:${Math.round(answered/s.questions.length*100)}%"></div></div>
- <section class="panel"><div class="question-head"><div class="actions"><span class="chip">${q.isMath?'✎ Mathematics':'◈ Concept'}</span><span class="chip">${HTML(q.topic)}</span></div><div class="actions">${`<button data-act="unsure" class="btn sm ${s.unsure?.[q.id]?'primary':'ghost'}" aria-pressed="${!!s.unsure?.[q.id]}">${s.unsure?.[q.id]?'✓ Guessed':'? I guessed'}</button>`}<button data-act="flag" class="btn sm ghost" aria-pressed="${s.flags.includes(q.id)}">${s.flags.includes(q.id)?'⚑ Flagged':'⚐ Flag'}</button></div></div>
+ <section class="panel q-panel${qEnter?' q-enter':''}"><div class="question-head"><div class="actions"><span class="chip">${q.isMath?'✎ Mathematics':'◈ Concept'}</span><span class="chip">${HTML(q.topic)}</span></div><div class="actions">${`<button data-act="unsure" class="btn sm ${s.unsure?.[q.id]?'primary':'ghost'}" aria-pressed="${!!s.unsure?.[q.id]}">${s.unsure?.[q.id]?'✓ Guessed':'? I guessed'}</button>`}<button data-act="flag" class="btn sm ghost" aria-pressed="${s.flags.includes(q.id)}">${s.flags.includes(q.id)?'⚑ Flagged':'⚐ Flag'}</button></div></div>
  <p class="question-body">${HTML(q.prompt)}</p><div class="choices${JUST===q.id?' just':''}">${choiceButtons(q,s,revealed,choice)}</div>
- ${revealed?`<div class="divider"></div><div class="notice ${choice===q.correct?'success':'warn'}">${choice===q.correct?(y?(y.won?`Correct. That's ${y.goal} in a row. YOLO conquered.`:`Correct. ${y.streak} in a row.`):'Correct — excellent.'):(timed?'Time\'s up. The correct answer is ':y?`Streak over at ${y.streak}. The correct answer is `:'Not quite. The correct answer is ')+letterOf(perm,q.correct)+'.'}</div><div class="explanation" style="margin-top:13px">${noteHTML(q,perm,choice)}</div>${note?`<div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'✓ Written in my notebook':'I wrote this one down'}</button></div>`:''}${reportRow(q.id)}`:''}
+ ${revealed?`<div class="divider"></div><div class="notice verdict ${choice===q.correct?'success':'warn'}">${choice===q.correct?(y?(y.won?`Correct. That's ${y.goal} in a row. YOLO conquered.`:`Correct. ${y.streak} in a row.`):'Correct — excellent.'):(timed?'Time\'s up. The correct answer is ':y?`Streak over at ${y.streak}. The correct answer is `:'Not quite. The correct answer is ')+letterOf(perm,q.correct)+'.'}</div><div class="explanation" style="margin-top:13px">${noteHTML(q,perm,choice)}</div>${note?`<div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'✓ Written in my notebook':'I wrote this one down'}</button></div>`:''}${reportRow(q.id)}`:''}
  <div class="question-footer"><div class="actions">${y?(revealed?(choice===q.correct?(yEnd?'':button('next','Next →','primary')):button('yolo-restart','↺ Start over at question 1','primary')):''):button('previous','← Previous','ghost')+button('next','Next →',revealed?'primary':'ghost')}</div><div class="actions">${yEnd?button('end-session',y.won?'🏆 Finish: 25 in a row':'Finish this run','primary'):button('end-session',isExam?'Submit Exam':'Finish Practice',isExam?'primary':'ghost')}</div></div></section>
  ${y?'':`<section class="panel"><div class="section-head"><h3>Question Navigator</h3><span class="small muted">${answered}/${s.questions.length} answered · ${s.flags.length} flagged</span></div><div class="exam-numbers">${s.questions.map((id,i)=>`<button data-jump="${i}" class="${i===s.cursor?'current':''} ${Number.isInteger(s.answers[id])?'answered':''} ${s.flags.includes(id)?'flagged':''}" aria-label="Go to question ${i+1}">${i+1}</button>`).join('')}</div></section>`}`;
 }
@@ -4053,6 +4107,12 @@ function heroStats(){const R=readiness(mastery(state.attempts),state.sessions),P
  return `<div class="hero-stats"><div class="ring" role="img" aria-label="Readiness ${none?'not measured yet':pct+' percent'}"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D08CFF"/><stop offset=".5" stop-color="#7A3CF5"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs><circle class="ring-bg" cx="60" cy="60" r="52"/>${pct?`<circle class="ring-fg" cx="60" cy="60" r="52" stroke="url(#ringGrad)" stroke-dasharray="${C}" style="--off:${(C*(1-pct/100)).toFixed(1)}"/>`:''}</svg><div class="ring-in"><b>${none?'—':pct}${none?'':'<small>%</small>'}</b><span>READY</span></div></div>
  <div class="hero-count"><b>${Math.max(0,P.dExam|0)}</b><span>days to test day</span><em>${HTML(day)}</em></div></div>`}
 let JUST=null;   // the question you just answered: its choices pop (right) or shake (wrong) once
+let ENTER=false,LAST_ROUTE=null,LAST_QK=null;
+// 5.8: confetti for a passed set (75%+, 10 or more questions) and for winning YOLO
+function confetti(){try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return}catch{}document.querySelector('.confetti')?.remove();
+ const C=['#9B20EA','#7A3CF5','#3F2FCB','#2F7BFF','#C9B8FF','#FFFFFF','#3EE0A1'],box=document.createElement('div');box.className='confetti';box.setAttribute('aria-hidden','true');
+ box.innerHTML=Array.from({length:48},(_,i)=>`<i style="--x:${(Math.random()*100).toFixed(1)}vw;--d:${(Math.random()*.5).toFixed(2)}s;--t:${(1.7+Math.random()*1.3).toFixed(2)}s;--r:${Math.round(Math.random()*900-450)}deg;--s:${(.6+Math.random()*.8).toFixed(2)};--w:${Math.round(Math.random()*80-40)}px;background:${C[i%C.length]}"></i>`).join('');
+ document.body.append(box);setTimeout(()=>box.remove(),3800)}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
 function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? The questions you did not answer go back to your fresh pile.'))return}
  const request={...state.settings,...(override||{})};if(type==='exam'&&!override)request.count=state.settings.examCount;
@@ -4075,7 +4135,7 @@ function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family==
 function selectAnswer(index){const s=currentSession();if(!s)return;const q=QMAP.get(s.questions[s.cursor]);if(!q)return;
  if(s.type==='practice'&&s.revealed[q.id])return;
  if(s.type==='exam'){s.answers[q.id]=index}
- else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);if(s.yolo)yoloAfter(s,q,index);JUST=q.id}
+ else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);if(s.yolo){yoloAfter(s,q,index);if(s.yolo.won&&!s.yolo.party){s.yolo.party=true;setTimeout(confetti,80)}}JUST=q.id}
  persist();render();}
 function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect, and their rules go back to your fresh pile.`))return}
@@ -4085,6 +4145,7 @@ function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.yolo){const all=new Map();for(const x of s.yolo.log)all.set(x.id,x.pick);s.questions=[...all.keys()];s.answers=Object.fromEntries([...all].filter(([,p])=>Number.isInteger(p)));   // YOLO: every run of the session
   if(s.yolo.log.length)state.yolo={best:Math.max(state.yolo?.best||0,s.yolo.best),runs:(state.yolo?.runs||0)+1,wins:(state.yolo?.wins||0)+(s.yolo.won?1:0)}}
  const r=scoreSession(s,QUESTIONS);
+ if(s.yolo?s.yolo.won:(r.total>=10&&r.pct>=75))setTimeout(confetti,300);
  state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,yolo:s.yolo?{best:s.yolo.best,restarts:s.yolo.restarts,won:s.yolo.won,goal:s.yolo.goal}:undefined,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[],timedOut:s.timedOut||{}}});
  state.sessions=state.sessions.slice(-150);let kept=0;for(let i=state.sessions.length-1;i>=0;i--){if(state.sessions[i].detail&&++kept>DETAIL_KEEP)delete state.sessions[i].detail}
  state.active=null;state.lastResult=s.id;state.resultsFilter=r.correct===r.total&&!Object.values(s.unsure||{}).some(Boolean)?'all':'missed';state.route='results';persist();render();window.scrollTo(0,0);
@@ -4187,7 +4248,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261020171709-24b78a59',OPENED=Date.now();
+const BUILD='20261020174409-cd5f5371',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
