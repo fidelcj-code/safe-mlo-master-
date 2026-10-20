@@ -268,6 +268,13 @@ body.calc-open .calc-fab{display:none}
 .topbar>span:first-child{min-width:0}
 @media(max-width:400px){.topbar{gap:8px}.top-right{gap:6px}.calc-top{width:36px;height:36px;border-radius:11px}.top-pill{padding:7px 10px;font-size:.72rem}}
 @media(max-width:360px){.top-pill .pill-word{display:none}}
+/* 5.5: question clocks and YOLO */
+.chip.qclock{font-variant-numeric:tabular-nums;background:rgba(47,123,255,.14);border-color:rgba(100,150,255,.55);color:#cfe0ff}
+.chip.qclock.low{background:rgba(255,84,112,.22);border-color:#FF5470;color:#fff;animation:clockpulse 1s ease-in-out infinite}
+@keyframes clockpulse{50%{box-shadow:0 0 0 4px rgba(255,84,112,.25)}}
+.eyebrow.yolo-eyebrow{background:linear-gradient(100deg,#c98cff,#8fb8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn.yolo-btn{background:linear-gradient(rgba(8,4,18,.85),rgba(8,4,18,.85)) padding-box,var(--grad) border-box;border:1px solid transparent}
+.notice.yolo-note{background:linear-gradient(120deg,rgba(155,32,234,.18),rgba(47,123,255,.12));border-color:rgba(155,110,255,.45)}
 </style>
 </head>
 <body>
@@ -3050,6 +3057,7 @@ function candidatePasses(q,s){
  if(q.status!=='verified')return false;
  if(s.category&&s.category!=='ALL'&&q.category!==s.category)return false;
  if(s.code&&q.code!==s.code)return false;
+ if(s.difficulty==='easy'&&q.isStmt)return false;          // 5.5 Easy: no true/false statement questions
  if(s.difficulty==='test-day'&&q.level===3)return false;
  if(s.difficulty==='impossible'&&q.level<3)return false;
  return true;
@@ -3057,25 +3065,39 @@ function candidatePasses(q,s){
 function shuffle(arr,rng=Math.random){const out=arr.slice();for(let i=out.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[out[i],out[j]]=[out[j],out[i]]}return out}
 // sort every rule that passes the filters into: never seen (fresh); missed or unsure last time (review); answered right a while ago and due
 // for a spaced check in a new wording (due); seen with a wording not yet shown (again); missed with no new wording left (repeat)
+// 5.5 difficulty levels. Standard is the real test's mix (weak areas get plainer wording while you build them). Every other level picks,
+// for each rule, the wording that fits it best: Easy the plainest, Hard/Veteran/YOLO the densest, Professional a true/false statement first,
+// Insanity the statement with the worst twist (EXCEPT, a double negative), in its densest form, with the longest calculation.
+const LEVELS=['easy','standard','hard','veteran','pro','insanity','yolo'];
+const CLOCK={veteran:95,pro:75,insanity:60};      // seconds per question in practice
+const twisty=q=>/\bEXCEPT\b|\bNOT (in(accurate|correct)|untrue)\b|are inaccurate|are accurate and one is not/.test(q.prompt);
+const steps=q=>q.isMath?(q.steps||[]).length:0;
+const RANK={easy:q=>-q.level*10-steps(q),hard:q=>q.level,veteran:q=>q.level,yolo:q=>q.level,
+ pro:q=>(q.isStmt?100:0)+q.level*10+(twisty(q)?1:0),
+ insanity:q=>(q.isStmt?100:0)+(twisty(q)?50:0)+q.level*10+steps(q)};
 function classify(exposures,attempts,s,rng=Math.random,M=mastery(attempts)){
  const pools={fresh:{},review:{},due:{},again:{},repeat:{}},counts={fresh:0,review:0,due:0,again:0,repeat:0,all:0},now=Date.now();
  const adapt=s.mode==='adaptive'||s.mode==='learn';
  // in Mixed style the wording follows how you are doing: direct questions while an area is weak, dense ones once it is strong
- const prefer=(q,cat)=>{if(s.mode==='learn')return q.level<3;if(!adapt||s.difficulty!=='mixed')return true;const c=M.cat[cat];if(!c.proven)return true;return c.acc>=0.85?q.level===3:c.acc<0.6?q.level<3:true};
+ const prefer=(q,cat)=>{if(s.mode==='learn')return q.level<3;if(!adapt||(s.difficulty!=='mixed'&&s.difficulty!=='standard'))return true;const c=M.cat[cat];if(!c.proven)return true;return c.acc>=0.85?q.level===3:c.acc<0.6?q.level<3:true};
  for(const [fam,f] of FAMILIES){
   if(s.category&&s.category!=='ALL'&&f.category!==s.category)continue;
   if(s.only&&!s.only.includes(fam))continue;          // Practice my traps: only these rules
+  if(s.exclude&&s.exclude.includes(fam))continue;    // YOLO: a fresh run never repeats a rule from the run before
   if(s.set==='new'&&!isNew(fam))continue;            // Question set: New questions from your courses
   let ok=f.qs.filter(q=>candidatePasses(q,s));if(s.statements==='more')ok=ok.filter(q=>q.isStmt);if(!ok.length)continue;   // More: only true/false statement questions
   counts.all+=ok.length;
   const e=exposures[fam],seen=new Set(e?.seenIds||[]),unseen=ok.filter(q=>!seen.has(q.id));
   // Fewer true/false statements: about 1 rule in 5 is asked as a statement question when it has one; the rest get a direct wording
-  const want=s.statements==='fewer'?rng()<0.28:null;
-  const pick=arr=>{if(want!==null){const w=arr.filter(q=>q.isStmt===want);if(w.length)arr=w}const pr=arr.filter(q=>prefer(q,f.category));const from=pr.length?pr:arr;return from[Math.floor(rng()*from.length)]};
+  const R=RANK[s.difficulty],want=s.statements==='fewer'&&s.difficulty!=='pro'&&s.difficulty!=='insanity'?rng()<0.28:null;
+  const pick=arr=>{if(want!==null){const w=arr.filter(q=>q.isStmt===want);if(w.length)arr=w}
+   if(R){const top=Math.max(...arr.map(R));const b=arr.filter(q=>R(q)===top);return b[Math.floor(rng()*b.length)]}
+   const pr=arr.filter(q=>prefer(q,f.category));const from=pr.length?pr:arr;return from[Math.floor(rng()*from.length)]};
   const r=M.fam[fam];let kind,q;
   if(!e){kind='fresh';q=pick(ok)}
   else if((r&&r.known===false)||e.confusing){if(unseen.length){kind='review';q=pick(unseen)}else{kind='repeat';q=pick(ok)}}    // missed, or you marked it confusing; no new wording left: only Review Missed repeats it
   else if(unseen.length){kind=r&&r.known&&now-r.lastAt>=SPACING[Math.min(r.streak,3)]*DAY?'due':'again';q=pick(unseen)}
+  else if(s.difficulty==='yolo'){kind='repeat';q=pick(ok)}     // YOLO: a rule you know, asked again, only once nothing new is left
   else continue;
   counts[kind]++;(pools[kind][f.category]=pools[kind][f.category]||[]).push(q);
  }
@@ -3104,7 +3126,7 @@ function tiltedQuotas(n,M){
  return out;
 }
 function selectQuestions(bank,exposures={},attempts=[],settings={},rng=Math.random){
- const s={mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',category:'ALL',count:10,...settings};
+ const s={mode:'adaptive',difficulty:'standard',math:'normal',statements:'normal',category:'ALL',count:10,...settings};
  const requested=Math.max(1,Math.min(120,Number(s.count)||10));
  const M=mastery(attempts);
  if(s.code)s.category=SEC_CAT[s.code.split('.')[0]];
@@ -3127,7 +3149,7 @@ function selectQuestions(bank,exposures={},attempts=[],settings={},rng=Math.rand
   if(s.mode==='learn'){got=take('review',cat,Math.round(want*.3));got+=take('fresh',cat,want-got);got+=take('due',cat,want-got);return got+take('again',cat,want-got)}
   // adaptive (and exams): about 1 in 5 missed rules, about 1 in 7 spaced checks, the rest fresh
   got+=take('review',cat,Math.round(want*.2));got+=take('due',cat,Math.round(want*.15));got+=take('fresh',cat,want-got);
-  got+=take('due',cat,want-got);got+=take('again',cat,want-got);return got+take('review',cat,want-got)}
+  got+=take('due',cat,want-got);got+=take('again',cat,want-got);got+=take('review',cat,want-got);return got+(s.difficulty==='yolo'?take('repeat',cat,want-got):0)}
  for(const cat of Object.keys(quota))fill(cat,quota[cat]);
  if(chosen.length<requested)for(const cat of (s.category&&s.category!=='ALL'?[s.category]:CAT_CODES))fill(cat,requested-chosen.length);
  // Normal math: top up to the minimum by swapping a calculation in for a non-math question of the same area, so the mix stays exact
@@ -3477,10 +3499,10 @@ function fitHandwriting(c,n,actual){
 const KEY='safe-mlo-master-v1';
 const A5_BOOK=Object.freeze({width:148,height:210,ruleGap:6,lines:0});
 const DEFAULTS={
- schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
- notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
+ schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
+ notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='5.4';
+const APP_VERSION='5.5';
 const CALC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="5.8" width="8" height="3.6" rx="1"/><path d="M8.6 13h.01M12 13h.01M15.4 13h.01M8.6 16.6h.01M12 16.6h.01M15.4 16.6h.01" stroke-width="2.6"/></svg>';   // 5.4: the calculator button (calc.js)
 const WHATS_NEW=[
  'New on Home: Go or no-go, four green lights to hit before your ready check (rules seen, every area 75%, "Which is TRUE?" 70%, your last two full-length exams 80%). And My traps: the rules you keep missing, your own wrong pick next to the truth, with a button to practice just those.',
@@ -3518,6 +3540,8 @@ function loadState(storage){
  try{const data=JSON.parse(raw);if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Invalid state');
   const st={...structuredClone(DEFAULTS),...data,settings:{...DEFAULTS.settings,...data.settings},notebook:{...DEFAULTS.notebook,...data.notebook},notesView:{...DEFAULTS.notesView,...data.notesView},page:{...DEFAULTS.page,...data.page},plan:{...DEFAULTS.plan,...data.plan},exposures:data.exposures&&typeof data.exposures==='object'?data.exposures:{},reports:Array.isArray(data.reports)?data.reports:[],attempts:Array.isArray(data.attempts)?data.attempts:[],notes:Array.isArray(data.notes)?data.notes:[],sessions:Array.isArray(data.sessions)?data.sessions:[]};
   if(st.settings.set!=='new')st.settings.set='all';     // 4.9: the study-guide set is gone; anything else is All questions
+  {const d=st.settings.difficulty;st.settings.difficulty={mixed:'standard','test-day':'standard',impossible:'insanity'}[d]||(LEVELS.includes(d)?d:'standard')}   // 5.5: the levels
+  st.yolo={best:0,runs:0,wins:0,...(data.yolo||{})};
   if(!data.schema){            // first open after the upgrade: the old letter-size page becomes an A5 page unless it was changed by hand
    const nb=data.notebook||{};if((!nb.width||nb.width===190)&&(!nb.height||nb.height===260))st.notebook={...A5_BOOK};
    st.schema=2;
@@ -3525,6 +3549,7 @@ function loadState(storage){
   if(!Array.isArray(st.plan.off))st.plan.off=[...DEFAULTS.plan.off];if(!Array.isArray(st.page.samples))st.page.samples=[];
   if(st.active&&(!Array.isArray(st.active.questions)||st.active.questions.some(id=>!QMAP.has(id))))st.active=null;
   if(st.active&&!st.active.perm)st.active.perm=makePerms(st.active.questions.map(id=>QMAP.get(id)));
+  if(st.active&&st.active.qStart)for(const id in st.active.qStart)if(!st.active.revealed?.[id])delete st.active.qStart[id];   // a question clock starts over when you reopen
   releaseSeen(st,Object.values(st.exposures).flatMap(e=>Array.isArray(e?.seenIds)?e.seenIds:[]),new Set(st.active?st.active.questions:[]));   // 5.3: shown but never answered is not seen
   return st;
  }catch{return structuredClone(DEFAULTS)}
@@ -3712,7 +3737,7 @@ function goPanel(){
 function renderDashboard(){
  const m=metricSummary(QUESTIONS,state.exposures,state.attempts);const cats=byCategoryMetrics(state.attempts);
  const todo=state.notes.filter(n=>!n.written).length;
- return `${whatsNew()}<section class="hero"><p class="welcome">Welcome Fidel Crispin JR</p><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}</div></section>
+ return `${whatsNew()}<section class="hero"><p class="welcome">Welcome Fidel Crispin JR</p><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}${button('yolo-start',`⚡ YOLO · best ${state.yolo?.best||0} of ${YOLO_GOAL}`,'ghost yolo-btn')}</div></section>
  <section class="section two-col equal"><div>${goPanel()}</div><div>${trapsPanel()}</div></section>
  <section class="section two-col equal"><div>${planPanel()}</div><div>${readinessPanel()}</div></section>
  <section class="section"><div class="section-head"><h2>Your journey in numbers</h2><span class="chip">${nfmt(QUESTIONS.length)} questions · ${nfmt(m.total)} rules</span></div>
@@ -3722,7 +3747,7 @@ function renderDashboard(){
 }
 function modeCards(type){const learn=type!=='exam';return `<div class="mode-grid${learn?' four':''}" role="group" aria-label="Question selection mode">${[...(learn?[['learn','✎','Learn','Read the rule and why it is right, then answer a question on it. Weakest topics first.']]:[]),['adaptive','◈','Adaptive','Leans toward your weak areas and topics, brings misses back in a new wording, and rechecks what you got right after 3, 7 and 21 days.'],['fresh','✦','Fresh Only','Rules you have never seen, then new wordings of ones you have. Never the same question twice.'],['review','↺','Review Missed','Rules you missed or were unsure of, asked a new way. If a rule has no new wording left, you see the same question again.']].map(([key,emoji,label,desc])=>`<button class="mode-card ${state.settings.mode===key?'active':''}" data-mode="${key}" aria-pressed="${(state.settings.mode===key)}"><span class="mode-emoji">${emoji}</span><strong>${label} ${key==='adaptive'?'<span class="badge">DEFAULT</span>':''}</strong><span class="mode-description">${desc}</span></button>`).join('')}</div>`}
 function renderSetup(type){const s={...state.settings},MS=mastery(state.attempts);if(type==='exam'&&s.mode==='learn')s.mode='adaptive';const counts=availableCounts(QUESTIONS,state.exposures,state.attempts,s);const previous=state.sessions.filter(x=>x.type===type).slice(-3).reverse();
- const isExam=type==='exam',countKey=isExam?'examCount':'count',cur=Number(s[countKey]);
+ const isExam=type==='exam',countKey=isExam?'examCount':'count',cur=Number(s[countKey]),dif=isExam&&s.difficulty==='yolo'?'hard':s.difficulty;
  const opts=isExam?[[10,'10 questions · 16 min'],[20,'20 questions · 32 min'],[30,'30 questions · 48 min'],[60,'60 questions · 95 min'],[120,'120 questions · 190 min · full length']]:[[5,'5 questions'],[10,'10 questions'],[15,'15 questions'],[20,'20 questions'],[25,'25 questions'],[30,'30 questions']];
  const other=state.active&&state.active.type!==type?state.active:null;
  return `${sectionTitle(isExam?'Simulated Exams':'Practice Questions',isExam?'Timed exams shaped like the real one, reviewed question by question after you submit.':'Build true mastery with fresh challenges and intentional review.')}
@@ -3731,14 +3756,14 @@ function renderSetup(type){const s={...state.settings},MS=mastery(state.attempts
  <section class="section" style="margin-top:18px"><div class="section-head"><h2>Choose your question experience</h2></div>${modeCards(type)}</section>
  <section class="section"><div class="panel"><h3>Customize your session</h3><div class="field-grid">
  <label class="field">Number of questions<select data-setting="${countKey}">${opts.map(([n,l])=>`<option value="${n}" ${cur===n?'selected':''}>${l}</option>`).join('')}</select></label>
- <label class="field">Question style<select data-setting="difficulty"><option value="test-day" ${s.difficulty==='test-day'?'selected':''}>Test Day</option><option value="mixed" ${s.difficulty==='mixed'?'selected':''}>Mixed</option><option value="impossible" ${s.difficulty==='impossible'?'selected':''}>Impossible</option></select></label>
+ <label class="field">Difficulty<select data-setting="difficulty">${levelOptions(isExam).map(([k,l])=>`<option value="${k}" ${dif===k?'selected':''}>${l}</option>`).join('')}</select></label>
  <label class="field">Mathematics<select data-setting="math"><option value="normal" ${s.math==='normal'?'selected':''}>Normal</option><option value="fewer" ${s.math==='fewer'?'selected':''}>Fewer</option></select></label>
- <label class="field">True/false statement questions<select data-setting="statements"><option value="normal" ${s.statements!=='fewer'&&s.statements!=='more'?'selected':''}>Normal (about half)</option><option value="fewer" ${s.statements==='fewer'?'selected':''}>Fewer (about 1 in 5)</option>${isExam?'':`<option value="more" ${s.statements==='more'?'selected':''}>More (only these, to drill them)</option>`}</select></label>
+ <label class="field">True/false statement questions${STMT_SET[dif]?`<select disabled><option>${STMT_SET[dif]}</option></select></label><span hidden>`:''}<select data-setting="statements"><option value="normal" ${s.statements!=='fewer'&&s.statements!=='more'?'selected':''}>Normal (about half)</option><option value="fewer" ${s.statements==='fewer'?'selected':''}>Fewer (about 1 in 5)</option>${isExam?'':`<option value="more" ${s.statements==='more'?'selected':''}>More (only these, to drill them)</option>`}</select>${STMT_SET[dif]?'</span>':'</label>'}
  <label class="field">Question set<select data-setting="set"><option value="all" ${s.set!=='new'?'selected':''}>All questions</option><option value="new" ${s.set==='new'?'selected':''}>New questions from your courses</option></select></label>
  <label class="field">NMLS category<select data-setting="category"><option value="ALL" ${s.category==='ALL'?'selected':''}>All 5 categories</option>${Object.entries(CATEGORIES).map(([k,c])=>`<option value="${k}" ${s.category===k?'selected':''}>${k} — ${c.name}${scoreText(MS.cat[k])}</option>`).join('')}</select></label>
  <label class="field">Topic<select data-setting="code"><option value="">Any topic</option>${Object.keys(BANK.topics).filter(c=>s.category==='ALL'||SEC_CAT[c.split('.')[0]]===s.category).map(c=>`<option value="${c}" ${s.code===c?'selected':''}>${c} ${HTML(BANK.topics[c])}${scoreText(MS.topic[c])}</option>`).join('')}</select></label>
-  </div><div class="divider"></div><div class="kpi-row"><span class="chip">✦ ${nfmt(counts.fresh)} fresh rules</span><span class="chip">↺ ${nfmt(counts.review)} missed rules</span><span class="chip">⟳ ${nfmt(counts.due)} due for a check</span><span class="chip">✎ ${nfmt(counts.again)} with a new wording left</span><span class="chip">▤ ${nfmt(counts.all)} questions in this filter</span></div>
- <div class="notice" style="margin-top:17px">Adaptive gives weak areas up to twice their usual share (every area keeps at least 60% of its share), puts weaker topics first, and in Mixed style moves to harder wording once an area passes 85%. About 1 question in 5 is a missed rule and about 1 in 7 is a spaced check. Test Day uses direct questions and short calculations; Impossible uses dense wording, close traps and the longest calculations. Normal math makes about one question in ten a calculation; Fewer makes it about one in twenty, and none in short sets. True/false statement questions ("Which statement is TRUE?", "...EXCEPT") are about half of a set on Normal; Fewer asks the same rules in a direct wording instead, leaving about 1 in 5, since the real exam still uses them. More asks only statement questions (find the TRUE one, the FALSE one, EXCEPT, and the double negatives), for drilling them; timed exams always use the normal mix. The answer order is shuffled every time, so the letter never gives anything away. The official exam does not publish a fixed number of math questions.</div>
+  </div>${dif==='yolo'&&!isExam?`<div class="notice yolo-note" style="margin-top:14px"><b>YOLO.</b> 25 in a row from rules you have already answered, each in its densest wording. Miss one and you go back to question 1 with all new questions. Your best streak: <b>${state.yolo?.best||0} of ${YOLO_GOAL}</b>.</div>`:''}<div class="divider"></div><div class="kpi-row"><span class="chip">✦ ${nfmt(counts.fresh)} fresh rules</span><span class="chip">↺ ${nfmt(counts.review)} missed rules</span><span class="chip">⟳ ${nfmt(counts.due)} due for a check</span><span class="chip">✎ ${nfmt(counts.again)} with a new wording left</span><span class="chip">▤ ${nfmt(counts.all)} questions in this filter</span></div>
+ <div class="notice" style="margin-top:17px"><b>Difficulty.</b> Easy asks each rule in its plainest wording, with no true/false statements. Standard is the real test's mix; in Adaptive, a weak area gets plainer wording until it passes 60%, and one past 85% gets denser wording. Hard asks every rule in its densest wording. Veteran adds the real test's pace, 95 seconds a question. Professional asks the true/false statement version first, 75 seconds each. Insanity picks the statement with the worst twist (EXCEPT, a double negative) and the longest math, 60 seconds each. When the clock hits zero it counts as a miss and shows you the answer. YOLO asks 25 rules you have already answered, in their densest wording: miss one and you start over at question 1 with new questions. On timed exams the levels change only the wording (the exam has its own clock), and the full-length exam is always Standard.<br><br>Adaptive gives weak areas up to twice their usual share (every area keeps at least 60% of its share) and puts weaker topics first. About 1 question in 5 is a missed rule and about 1 in 7 is a spaced check. Normal math makes about one question in ten a calculation; Fewer makes it about one in twenty, and none in short sets. True/false statement questions ("Which statement is TRUE?", "...EXCEPT") are about half of a set on Normal; Fewer asks the same rules in a direct wording instead, leaving about 1 in 5, since the real exam still uses them. More asks only statement questions (find the TRUE one, the FALSE one, EXCEPT, and the double negatives), for drilling them; timed exams always use the normal mix. The answer order is shuffled every time, so the letter never gives anything away. The official exam does not publish a fixed number of math questions.</div>
  <div class="actions" style="margin-top:18px">${button('start-'+type,isExam?'Start Timed Exam →':s.mode==='learn'?'Start Learning →':'Start Practice →','primary')}</div></div></section>
  ${previous.length?`<section class="section"><h3>Recent sessions</h3><div class="panel">${previous.map(x=>sessionRow(x)).join('')}</div></section>`:''}`;
 }
@@ -3752,13 +3777,15 @@ function renderSession(){const s=currentSession();if(!s)return renderSetup(state
  const choice=s.answers[q.id],revealed=s.type==='practice'&&s.revealed[q.id];
  const isExam=s.type==='exam';const answered=Object.keys(s.answers).length;const perm=s.perm[q.id];
  const note=revealed?state.notes.find(n=>n.session===s.id&&n.qid===q.id):null;
- return `<div class="question-head"><div><span class="eyebrow">${isExam?(s.questions.length===120?'FULL-LENGTH EXAM':'TIMED MINI-EXAM'):s.learn?'LEARN, THEN CHECK':'FOCUSED PRACTICE'}</span><h2 style="margin-top:9px">Question ${s.cursor+1} <span class="muted">of ${s.questions.length}</span></h2></div><div class="actions"><span class="chip">${HTML(q.category)} · ${HTML(q.topic)}</span>${isExam?'<span class="chip pink" id="timer" role="timer">⏱ --:--</span>':''}</div></div>
+ if(s.clock&&!revealed){s.qStart=s.qStart||{};if(!s.qStart[q.id])s.qStart[q.id]=Date.now()}
+ const y=s.yolo,yEnd=y&&revealed&&choice===q.correct&&(y.won||s.cursor>=s.questions.length-1),timed=!!s.timedOut?.[q.id],lvl=s.difficulty&&s.difficulty!=='standard'&&s.difficulty!=='mixed'&&!y?` · ${(LEVEL_NAME[s.difficulty]||'').toUpperCase()}`:'';
+ return `<div class="question-head"><div><span class="eyebrow${y?' yolo-eyebrow':''}">${y?`⚡ YOLO · ${y.streak} IN A ROW · BEST ${Math.max(y.best,state.yolo?.best||0)}`:(isExam?(s.questions.length===120?'FULL-LENGTH EXAM':'TIMED MINI-EXAM'):s.learn?'LEARN, THEN CHECK':'FOCUSED PRACTICE')+lvl}</span><h2 style="margin-top:9px">Question ${s.cursor+1} <span class="muted">of ${s.questions.length}</span></h2></div><div class="actions"><span class="chip">${HTML(q.category)} · ${HTML(q.topic)}</span>${isExam?'<span class="chip pink" id="timer" role="timer">⏱ --:--</span>':''}${s.clock&&!revealed?`<span class="chip qclock${clockLeft(s,q.id)<=10?' low':''}" id="qclock" role="timer">${clockText(clockLeft(s,q.id))}</span>`:''}</div></div>
  <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(answered/s.questions.length*100)}"><div class="progress-fill" style="width:${Math.round(answered/s.questions.length*100)}%"></div></div>
  <section class="panel"><div class="question-head"><div class="actions"><span class="chip">${q.isMath?'✎ Mathematics':'◈ Concept'}</span><span class="chip">${HTML(q.topic)}</span></div><div class="actions">${`<button data-act="unsure" class="btn sm ${s.unsure?.[q.id]?'primary':'ghost'}" aria-pressed="${!!s.unsure?.[q.id]}">${s.unsure?.[q.id]?'✓ Guessed':'? I guessed'}</button>`}<button data-act="flag" class="btn sm ghost" aria-pressed="${s.flags.includes(q.id)}">${s.flags.includes(q.id)?'⚑ Flagged':'⚐ Flag'}</button></div></div>
  <p class="question-body">${HTML(q.prompt)}</p><div class="choices">${choiceButtons(q,s,revealed,choice)}</div>
- ${revealed?`<div class="divider"></div><div class="notice ${choice===q.correct?'success':'warn'}">${choice===q.correct?'Correct — excellent.':'Not quite. The correct answer is '+letterOf(perm,q.correct)+'.'}</div><div class="explanation" style="margin-top:13px">${noteHTML(q,perm,choice)}</div>${note?`<div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'✓ Written in my notebook':'I wrote this one down'}</button></div>`:''}${reportRow(q.id)}`:''}
- <div class="question-footer"><div class="actions">${button('previous','← Previous','ghost')}${button('next','Next →',revealed?'primary':'ghost')}</div><div class="actions">${button('end-session',isExam?'Submit Exam':'Finish Practice',isExam?'primary':'ghost')}</div></div></section>
- <section class="panel"><div class="section-head"><h3>Question Navigator</h3><span class="small muted">${answered}/${s.questions.length} answered · ${s.flags.length} flagged</span></div><div class="exam-numbers">${s.questions.map((id,i)=>`<button data-jump="${i}" class="${i===s.cursor?'current':''} ${Number.isInteger(s.answers[id])?'answered':''} ${s.flags.includes(id)?'flagged':''}" aria-label="Go to question ${i+1}">${i+1}</button>`).join('')}</div></section>`;
+ ${revealed?`<div class="divider"></div><div class="notice ${choice===q.correct?'success':'warn'}">${choice===q.correct?(y?(y.won?`Correct. That's ${y.goal} in a row. YOLO conquered.`:`Correct. ${y.streak} in a row.`):'Correct — excellent.'):(timed?'Time\'s up. The correct answer is ':y?`Streak over at ${y.streak}. The correct answer is `:'Not quite. The correct answer is ')+letterOf(perm,q.correct)+'.'}</div><div class="explanation" style="margin-top:13px">${noteHTML(q,perm,choice)}</div>${note?`<div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'✓ Written in my notebook':'I wrote this one down'}</button></div>`:''}${reportRow(q.id)}`:''}
+ <div class="question-footer"><div class="actions">${y?(revealed?(choice===q.correct?(yEnd?'':button('next','Next →','primary')):button('yolo-restart','↺ Start over at question 1','primary')):''):button('previous','← Previous','ghost')+button('next','Next →',revealed?'primary':'ghost')}</div><div class="actions">${yEnd?button('end-session',y.won?'🏆 Finish: 25 in a row':'Finish this run','primary'):button('end-session',isExam?'Submit Exam':'Finish Practice',isExam?'primary':'ghost')}</div></div></section>
+ ${y?'':`<section class="panel"><div class="section-head"><h3>Question Navigator</h3><span class="small muted">${answered}/${s.questions.length} answered · ${s.flags.length} flagged</span></div><div class="exam-numbers">${s.questions.map((id,i)=>`<button data-jump="${i}" class="${i===s.cursor?'current':''} ${Number.isInteger(s.answers[id])?'answered':''} ${s.flags.includes(id)?'flagged':''}" aria-label="Go to question ${i+1}">${i+1}</button>`).join('')}</div></section>`}`;
 }
 // tell the app (and Claude) something is off with a question; confusing ones come back with the rule first
 const REPORT_KINDS=[['confusing','Confusing'],['prepxl','PrepXL says different']];
@@ -3786,6 +3813,7 @@ function buildReport(){
   `Recent by area: ${areas}`,
   `By question style: ${styles}`,
   (()=>{const g=goSignals();return `Go/no-go: ${g.green} of 4 green · `+g.lights.map((l,i)=>`${GO_LINES[i]}: ${l.ok?'yes':'no'} (${l.note})`).join(' · ')})(),
+  `YOLO: best ${state.yolo?.best||0} of ${YOLO_GOAL} in a row · ${state.yolo?.runs||0} runs · ${state.yolo?.wins||0} wins`,
   (()=>{const t=trapList();return `My traps: ${t.traps.length} open, ${t.fixed} fixed`+(t.traps.length?` · top: `+t.traps.slice(0,5).map(x=>`${x.q.id} picked "${clip(x.q.choices[x.pick],60)}"`).join(' · '):'')})(),
   `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missedRules.length}):`,...(missed.length?missed:['- none']),'',`Flagged questions (${state.notes.filter(n=>n.flagged).length}):`,...(flagged.length?flagged:['- none']),'',`Guessed (${gAt.length} answers, ${gRight} right by luck):`,...(guesses.length?guesses:['- none']),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
 }
@@ -3855,13 +3883,14 @@ function renderResults(){
  const r=state.sessions.find(x=>x.id===state.lastResult);
  if(!r||!r.detail)return `${sectionTitle('Results')}<div class="empty"><h3>Nothing to review yet</h3><p>Finish a practice set or an exam to review it question by question.</p></div>`;
  const d=r.detail,f=state.resultsFilter||'missed';
+ const timedN=Object.keys(d.timedOut||{}).length;
  const rows=d.questions.map((id,i)=>{const q=QMAP.get(id);if(!q)return null;const a=d.answers[id];return {i,q,a,ok:a===q.correct,none:!Number.isInteger(a)}}).filter(Boolean);
  const miss=rows.filter(x=>!x.ok||d.unsure?.[x.q.id]),byCat={};
  for(const x of rows){const c=byCat[x.q.category]=byCat[x.q.category]||{n:0,ok:0};c.n++;if(x.ok)c.ok++}
- const list=(f==='all'?rows:miss).map(x=>{const perm=d.perm?.[x.q.id];return `<article class="qcard ${x.ok?'ok':'miss'}"><div class="qcard-head"><span class="mark">${x.ok?'✓':'✗'}</span><b>Q${x.i+1}</b><span class="chip">${HTML(x.q.category)} · ${HTML(x.q.topic)}</span></div><p class="qcard-q">${HTML(x.q.prompt)}</p><p class="small ${x.ok?'good':'bad'}">${x.none?'Not answered.':`You chose ${letterOf(perm,x.a)}. ${HTML(x.q.choices[x.a])}`}${d.unsure?.[x.q.id]?' <span class="muted">(guessed)</span>':''}</p>${x.ok?'':`<p class="small good">Correct: ${letterOf(perm,x.q.correct)}. ${HTML(x.q.choices[x.q.correct])}</p>`}<details ${x.ok&&!d.unsure?.[x.q.id]?'':'open'}><summary>${x.ok?'Show the notes':'Notes'}</summary><div class="explanation" style="margin-top:10px">${noteHTML(x.q,perm,x.a)}</div>${reportRow(x.q.id)}</details></article>`}).join('');
+ const list=(f==='all'?rows:miss).map(x=>{const perm=d.perm?.[x.q.id];return `<article class="qcard ${x.ok?'ok':'miss'}"><div class="qcard-head"><span class="mark">${x.ok?'✓':'✗'}</span><b>Q${x.i+1}</b><span class="chip">${HTML(x.q.category)} · ${HTML(x.q.topic)}</span></div><p class="qcard-q">${HTML(x.q.prompt)}</p><p class="small ${x.ok?'good':'bad'}">${x.none?(d.timedOut?.[x.q.id]?'Time ran out.':'Not answered.'):`You chose ${letterOf(perm,x.a)}. ${HTML(x.q.choices[x.a])}`}${d.unsure?.[x.q.id]?' <span class="muted">(guessed)</span>':''}</p>${x.ok?'':`<p class="small good">Correct: ${letterOf(perm,x.q.correct)}. ${HTML(x.q.choices[x.q.correct])}</p>`}<details ${x.ok&&!d.unsure?.[x.q.id]?'':'open'}><summary>${x.ok?'Show the notes':'Notes'}</summary><div class="explanation" style="margin-top:10px">${noteHTML(x.q,perm,x.a)}</div>${reportRow(x.q.id)}</details></article>`}).join('');
  const mins=r.endedAt&&r.startedAt?Math.round((Date.parse(r.endedAt)-Date.parse(r.startedAt))/60000):null;
  return `${sectionTitle(r.type==='exam'?(r.total===120?'Full-length exam results':'Mini-exam results'):'Practice results',`${new Date(r.endedAt).toLocaleString()}${mins!==null?` · ${mins} min`:''}${r.expired?' · time expired':''}`)}
- <section class="hero" style="min-height:0"><span class="eyebrow">${r.passed?'AT OR ABOVE THE 75% PASS MARK':'BELOW THE 75% PASS MARK'}</span><h1>${r.pct}%</h1><p>${r.correct} correct out of ${r.total}. ${r.total-r.answered} unanswered${r.total>r.answered?', and those go back to your fresh pile':''}. ${r.type==='exam'?'A practice score, not an official SAFE MLO score.':''}</p><div class="actions">${miss.length?button('review-missed','Practice the ones I missed →','light'):''}${button('dash-analytics','See Analytics','ghost')}</div></section>
+ <section class="hero" style="min-height:0">${r.yolo?`<span class="eyebrow">${r.yolo.won?'⚡ YOLO CONQUERED':'⚡ YOLO'}</span><h1>${r.yolo.best} in a row</h1><p>Goal: ${r.yolo.goal} in a row. ${r.yolo.restarts} restart${r.yolo.restarts===1?'':'s'}. ${r.correct} right out of ${r.total} answered. Your best ever: ${state.yolo?.best||0}.</p>`:`<span class="eyebrow">${r.passed?'AT OR ABOVE THE 75% PASS MARK':'BELOW THE 75% PASS MARK'}</span><h1>${r.pct}%</h1><p>${r.correct} correct out of ${r.total}. ${timedN?`${timedN} ran out of time. `:''}${r.total-r.answered-timedN} unanswered${r.total-r.answered-timedN>0?', and those go back to your fresh pile':''}. ${r.type==='exam'?'A practice score, not an official SAFE MLO score.':''}</p>`}<div class="actions">${miss.length?button('review-missed','Practice the ones I missed →','light'):''}${button('dash-analytics','See Analytics','ghost')}</div></section>
  <section class="section"><div class="panel"><h3>By category</h3><table class="table"><thead><tr><th>Category</th><th>Right</th><th>Score</th></tr></thead><tbody>${CAT_CODES.filter(k=>byCat[k]).map(k=>`<tr><td>${k} · ${catText(k)}</td><td>${byCat[k].ok}/${byCat[k].n}</td><td>${Math.round(byCat[k].ok/byCat[k].n*100)}%</td></tr>`).join('')}</tbody></table></div></section>
  <section class="section">${readinessPanel()}</section>
  <section class="section"><div class="section-head"><h2>Question by question</h2><div class="actions"><button class="btn sm ${f==='missed'?'primary':'ghost'}" data-rfilter="missed">Missed or guessed (${miss.length})</button><button class="btn sm ${f==='all'?'primary':'ghost'}" data-rfilter="all">All ${rows.length}</button></div></div>
@@ -3913,15 +3942,45 @@ function releaseSeen(st,ids,keep=new Set()){const answered=new Set(st.attempts.m
   e.seenIds=e.seenIds.filter(x=>x!==id);e.exposureCount=Math.max(0,(e.exposureCount||1)-1);n++;
   if(!e.seenIds.length&&!fams.has(q.family)&&!e.confusing)delete st.exposures[q.family]}
  return n}
+// 5.5: difficulty levels, question clocks and YOLO
+const YOLO_GOAL=25;
+const LEVEL_NAME={easy:'Easy',standard:'Standard',hard:'Hard',veteran:'Veteran',pro:'Professional',insanity:'Insanity',yolo:'YOLO'};
+const STMT_SET={easy:'None on Easy',pro:'Mostly, on Professional',insanity:'All it can, on Insanity'};
+function levelOptions(isExam){return LEVELS.filter(k=>!(isExam&&k==='yolo')).map(k=>[k,LEVEL_NAME[k]+(k==='standard'?' (like the real test)':!isExam&&CLOCK[k]?` · ${CLOCK[k]} sec each`:k==='yolo'?' · 25 in a row':'')])}
+const clockText=sec=>`⏱ ${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
+function clockLeft(s,id){return Math.max(0,Math.ceil(s.clock-(Date.now()-(s.qStart?.[id]||Date.now()))/1000))}
+function tickClock(s){if(!s.clock)return;const id=s.questions[s.cursor],el=document.querySelector('#qclock');if(!el||s.revealed[id]||!s.qStart?.[id])return;
+ const left=clockLeft(s,id);el.textContent=clockText(left);el.classList.toggle('low',left<=10);if(left===0){const q=QMAP.get(id);if(q)timeOut(s,q)}}
+// the clock ran out: a miss, and the answer is shown, like any wrong pick
+function timeOut(s,q){if(!s||s.revealed[q.id])return;s.revealed[q.id]=true;s.timedOut=s.timedOut||{};s.timedOut[q.id]=true;recordAttempt(q,null,s);
+ addNote(q,null,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);persist();render()}
+function yoloAfter(s,q,pick){const y=s.yolo,ok=pick===q.correct;y.log.push({id:q.id,pick,ok});
+ if(ok){y.streak++;y.best=Math.max(y.best,y.streak);if(y.streak>=y.goal)y.won=true}
+ state.yolo={...(state.yolo||{best:0,runs:0,wins:0}),best:Math.max(state.yolo?.best||0,y.best)}}
+// a miss: back to question 1 with a new set. Nothing from the run you just lost, and nothing this session asked before until the pool runs short
+function yoloRestart(){const s=currentSession();if(!s||!s.yolo)return;const y=s.yolo;
+ releaseSeen(state,s.questions);
+ const prev=s.questions.map(id=>QMAP.get(id)?.family).filter(Boolean),used=[...new Set([...(y.used||[]),...prev])];
+ const base={mode:'adaptive',difficulty:'yolo',count:y.goal,...y.req};
+ let sel=selectQuestions(QUESTIONS,state.exposures,state.attempts,{...base,exclude:used});
+ if(sel.questions.length<y.goal)sel=selectQuestions(QUESTIONS,state.exposures,state.attempts,{...base,exclude:prev});
+ if(!sel.questions.length){toast('No questions left for a new run. Finish this one.',true);return}
+ s.questions=sel.questions.map(q=>q.id);s.perm={...s.perm,...makePerms(sel.questions)};
+ s.freshIds=[...new Set([...s.freshIds,...sel.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id)])];
+ exposeQuestions(sel.questions);s.answers={};s.revealed={};s.qStart={};s.timedOut={};s.cursor=0;y.streak=0;y.restarts++;y.used=used;
+ persist();render();window.scrollTo(0,0);toast('Back to question 1. All new questions.')}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
 function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? The questions you did not answer go back to your fresh pile.'))return}
  const request={...state.settings,...(override||{})};if(type==='exam'&&!override)request.count=state.settings.examCount;
  if(type==='exam'){request.exact=true;if(request.mode==='learn')request.mode='adaptive';if(request.statements==='more')request.statements='normal'}   // exams keep the real mix
+ if(type==='exam'&&request.difficulty==='yolo')request.difficulty='hard';
+ let yolo=null;if(type==='practice'&&request.difficulty==='yolo'){const fams=[...new Set(state.attempts.map(a=>a.family))];request.mode='adaptive';request.count=YOLO_GOAL;request.only=fams.length>=40?fams:undefined;
+  yolo={goal:YOLO_GOAL,streak:0,best:0,restarts:0,log:[],won:false,req:{category:request.category,code:request.code,set:request.set,math:request.math,statements:request.statements,only:request.only}}}
  const selected=selectQuestions(QUESTIONS,state.exposures,state.attempts,request);
  if(!selected.questions.length){toast('No eligible questions. Try another mode or category.',true);return}
  if(selected.shortage>0&&!confirm(`Only ${selected.available} of ${selected.requested} eligible questions are available. Start a shorter set with no repeats?`))return;
- const lessonFor=type==='practice'&&request.mode!=='learn'?selected.questions.filter(q=>{const e=state.exposures[q.family];return e&&(e.confusing||((e.lapses||0)>=2&&e.lastCorrect===false))}).map(q=>q.id):[];
- const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,statements:request.statements,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{}};
+ const lessonFor=type==='practice'&&request.mode!=='learn'&&!yolo?selected.questions.filter(q=>{const e=state.exposures[q.family];return e&&(e.confusing||((e.lapses||0)>=2&&e.lastCorrect===false))}).map(q=>q.id):[];
+ const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,statements:request.statements,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{},clock:type==='practice'&&!yolo&&request.mode!=='learn'?(CLOCK[request.difficulty]||0):0,qStart:{},timedOut:{},yolo};
  if(state.active)releaseSeen(state,state.active.questions);exposeQuestions(selected.questions);state.active=active;state.route=type;persist();render();window.scrollTo(0,0);toast(`Started: ${selected.freshCount} fresh · ${selected.reviewCount} review${selected.againCount?` · ${selected.againCount} new wording`:''}${selected.repeats?` · ${selected.repeats} seen before`:''}`);
 }
 function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family===q.family);const correct=chosen===q.correct;
@@ -3932,15 +3991,17 @@ function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family==
 function selectAnswer(index){const s=currentSession();if(!s)return;const q=QMAP.get(s.questions[s.cursor]);if(!q)return;
  if(s.type==='practice'&&s.revealed[q.id])return;
  if(s.type==='exam'){s.answers[q.id]=index}
- else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id])}
+ else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);if(s.yolo)yoloAfter(s,q,index)}
  persist();render();}
 function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect, and their rules go back to your fresh pile.`))return}
  if(s.type==='exam'){for(const id of s.questions){if(Number.isInteger(s.answers[id])){const q=QMAP.get(id);recordAttempt(q,s.answers[id],s);addNote(q,s.answers[id],s.perm[id],s.id,s.flags.includes(id),!!s.unsure?.[id])}}}
  for(const id of s.flags){const q=QMAP.get(id);if(q&&!state.notes.some(n=>n.session===s.id&&n.qid===id))addNote(q,Number.isInteger(s.answers[id])?s.answers[id]:null,s.perm[id],s.id,true,!!s.unsure?.[id])}   // flagged and skipped: still a note, so you can study it
  releaseSeen(state,s.questions);   // the ones you did not answer go back
+ if(s.yolo){const all=new Map();for(const x of s.yolo.log)all.set(x.id,x.pick);s.questions=[...all.keys()];s.answers=Object.fromEntries([...all].filter(([,p])=>Number.isInteger(p)));   // YOLO: every run of the session
+  if(s.yolo.log.length)state.yolo={best:Math.max(state.yolo?.best||0,s.yolo.best),runs:(state.yolo?.runs||0)+1,wins:(state.yolo?.wins||0)+(s.yolo.won?1:0)}}
  const r=scoreSession(s,QUESTIONS);
- state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[]}});
+ state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,yolo:s.yolo?{best:s.yolo.best,restarts:s.yolo.restarts,won:s.yolo.won,goal:s.yolo.goal}:undefined,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[],timedOut:s.timedOut||{}}});
  state.sessions=state.sessions.slice(-150);let kept=0;for(let i=state.sessions.length-1;i>=0;i--){if(state.sessions[i].detail&&++kept>DETAIL_KEEP)delete state.sessions[i].detail}
  state.active=null;state.lastResult=s.id;state.resultsFilter=r.correct===r.total&&!Object.values(s.unsure||{}).some(Boolean)?'all':'missed';state.route='results';persist();render();window.scrollTo(0,0);
 }
@@ -3948,7 +4009,7 @@ function showNoteEditor(id){const old=id?state.notes.find(n=>n.id===id):null;con
 function downloadFile(name,text,type){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function notebookConfig(key,value){const limits={width:[100,220],height:[140,310],ruleGap:[4,15],lines:[0,18]};const n=Number(value);if(!Number.isFinite(n)){toast('Enter a valid number.',true);return}const [min,max]=limits[key];state.notebook[key]=Math.max(min,Math.min(max,Math.round(n)));persist();render()}
 function navigate(route){document.querySelector('.modal-backdrop')?.remove();state.route=route;persist();render();window.scrollTo(0,0)}
-function updateTimer(){const el=document.querySelector('#timer'),s=state.active;if(!el||!s||s.type!=='exam')return;const sec=Math.max(0,Math.ceil((s.deadlineAt-Date.now())/1000));const hh=Math.floor(sec/3600),mm=Math.floor(sec%3600/60);el.textContent=`⏱ ${hh?hh+':':''}${String(mm).padStart(hh?2:1,'0')}:${String(sec%60).padStart(2,'0')}`;if(sec===0)finishSession(true)}
+function updateTimer(){if(state.active?.type==='practice'){tickClock(state.active);return}const el=document.querySelector('#timer'),s=state.active;if(!el||!s||s.type!=='exam')return;const sec=Math.max(0,Math.ceil((s.deadlineAt-Date.now())/1000));const hh=Math.floor(sec/3600),mm=Math.floor(sec%3600/60);el.textContent=`⏱ ${hh?hh+':':''}${String(mm).padStart(hh?2:1,'0')}:${String(sec%60).padStart(2,'0')}`;if(sec===0)finishSession(true)}
 setInterval(updateTimer,1000);
 document.addEventListener('click',e=>{
  const link=e.target.closest('[data-route]');if(link){e.preventDefault();navigate(link.dataset.route);return}
@@ -3961,7 +4022,7 @@ document.addEventListener('click',e=>{
  const nf=e.target.closest('[data-nfilter]');if(nf){state.notesView={...state.notesView,filter:nf.dataset.nfilter,pages:10,list:20};persist();render();return}
  const rf=e.target.closest('[data-rfilter]');if(rf){state.resultsFilter=rf.dataset.rfilter;render();return}
  const rv=e.target.closest('[data-review]');if(rv){state.lastResult=rv.dataset.review;state.resultsFilter='missed';navigate('results');return}
- const lrn=e.target.closest('[data-learn]');if(lrn){startSession('practice',{mode:'learn',category:lrn.dataset.cat||'ALL',code:lrn.dataset.learn||'',difficulty:'mixed',count:10});return}
+ const lrn=e.target.closest('[data-learn]');if(lrn){startSession('practice',{mode:'learn',category:lrn.dataset.cat||'ALL',code:lrn.dataset.learn||'',difficulty:'standard',count:10});return}
  const dr=e.target.closest('[data-drill]');if(dr){startSession('practice',{mode:'adaptive',category:dr.dataset.drill,code:'',count:15});return}
  const pg2=e.target.closest('[data-page]');if(pg2){const k=pg2.dataset.page,v=pg2.dataset.v;if(k==='rows'&&[31,35,40].includes(+v))state.page.rows=+v;if(k==='hand'&&(['s','m','l'].includes(v)||(v==='c'&&state.page.cpl)))state.page.hand=v;persist();render();return}
  const pp=e.target.closest('[data-paper]');if(pp){const n=state.notes.find(x=>x.id===pp.dataset.paper);if(n){n.top=pp.dataset.v==='top';persist();render();toast(n.top?'Got it: that entry starts a new page.':'Got it: that entry goes under the one before.')}return}
@@ -3986,8 +4047,8 @@ document.addEventListener('click',e=>{
  switch(a){
  case 'dash-practice':navigate('practice');break;case 'drill-traps':{const t=trapList().traps;if(t.length)startSession('practice',{mode:'adaptive',only:t.map(x=>x.f),count:Math.min(20,t.length)});break}case 'dash-exam':navigate('exam');break;case 'dash-notebook':navigate('notebook');break;case 'dash-analytics':navigate('analytics');break;
  case 'start-practice':startSession('practice');break;
- case 'full-exam':startSession('exam',{count:120,mode:'adaptive',difficulty:'mixed',category:'ALL',code:''});break;case 'start-exam':startSession('exam');break;
- case 'review-missed':{const r=state.sessions.find(x=>x.id===state.lastResult),missed=r?r.total-r.correct:10;startSession('practice',{mode:'review',category:'ALL',difficulty:'mixed',count:Math.min(30,Math.max(5,missed))});break}
+ case 'full-exam':startSession('exam',{count:120,mode:'adaptive',difficulty:'standard',category:'ALL',code:''});break;case 'yolo-start':startSession('practice',{difficulty:'yolo'});break;case 'yolo-restart':yoloRestart();break;case 'start-exam':startSession('exam');break;
+ case 'review-missed':{const r=state.sessions.find(x=>x.id===state.lastResult),missed=r?r.total-r.correct:10;startSession('practice',{mode:'review',category:'ALL',difficulty:'standard',count:Math.min(30,Math.max(5,missed))});break}
  case 'next':if(s){s.cursor=Math.min(s.questions.length-1,s.cursor+1);persist();render();window.scrollTo(0,0)}break;
  case 'previous':if(s){s.cursor=Math.max(0,s.cursor-1);persist();render();window.scrollTo(0,0)}break;
  case 'check':if(s){s.carded=s.carded||{};s.carded[s.questions[s.cursor]]=true;persist();render();window.scrollTo(0,0)}break;
@@ -4042,7 +4103,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261020162450-478e7c1b',OPENED=Date.now();
+const BUILD='20261020164110-ab7c1a8e',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
