@@ -404,6 +404,56 @@ button.chip.qclock{cursor:pointer;font:inherit;font-size:.7rem;font-weight:750}
 @media(max-width:400px){.field-grid{grid-template-columns:minmax(0,1fr)}}
 .topbar .wordmark{white-space:nowrap}
 @media(max-width:760px){.topbar .crumb{display:flex;flex-direction:column;gap:2px;line-height:1.25}.topbar .crumb-sep{display:none}.topbar .wordmark{font-size:.72rem}}
+
+/* ===== 5.9 · Game: rank medal, XP bar, streak flame, badges, XP pop, level-up ===== */
+.medal{width:58px;height:58px;flex:0 0 58px;border-radius:18px;transform:rotate(45deg);display:grid;place-items:center;background:var(--grad);
+ box-shadow:0 10px 30px rgba(122,60,245,.55),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -6px 14px rgba(0,0,0,.25);margin:6px}
+.medal span{transform:rotate(-45deg);font-family:var(--sans);font-weight:800;font-size:1.45rem;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.35)}
+.medal.big{width:96px;height:96px;flex-basis:96px;border-radius:28px;margin:10px auto 18px}.medal.big span{font-size:2.4rem}
+.player .pc-top{display:flex;align-items:center;gap:16px}
+.pc-who{flex:1;min-width:0}.pc-who h3{font-size:1.25rem;margin:4px 0 9px;font-family:var(--sans)}
+.xpbar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:7px}
+.xpfill{height:100%;border-radius:999px;background:var(--grad);box-shadow:0 0 14px rgba(122,60,245,.75);animation:xpgrow 1.3s cubic-bezier(.2,.8,.2,1)}
+@keyframes xpgrow{from{width:0}}
+.flame{display:grid;justify-items:center;gap:2px;padding:10px 12px;border-radius:16px;background:rgba(122,60,245,.12);border:1px solid rgba(165,125,255,.3);min-width:76px}
+.flame b{font-family:var(--sans);font-size:1.35rem;font-weight:800;white-space:nowrap;filter:grayscale(1);opacity:.6}
+.flame.on b{filter:none;opacity:1;text-shadow:0 0 16px rgba(255,150,80,.55)}
+.flame span{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;white-space:nowrap}
+.pc-badges{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}
+.pc-badges .linkish{margin-left:auto;color:#c4b2ff;font-size:.82rem}
+.pc-note{margin-top:12px;line-height:1.5}
+.bdg{width:40px;height:40px;flex:0 0 40px;border-radius:13px;display:grid;place-items:center;font-size:1.2rem;background:linear-gradient(140deg,rgba(155,32,234,.38),rgba(47,123,255,.22));
+ border:1px solid rgba(165,125,255,.45);box-shadow:0 0 14px rgba(122,60,245,.32)}
+.bdg.big{width:46px;height:46px;flex-basis:46px;font-size:1.4rem}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.ach{display:flex;gap:11px;align-items:center;padding:11px 12px;border-radius:15px;border:1px solid rgba(155,110,255,.28);background:rgba(12,6,26,.72)}
+.ach b{display:block;font-size:.86rem}.ach span:not(.bdg){display:block;font-size:.74rem;color:var(--muted);line-height:1.35;margin-top:2px}
+.ach.locked{opacity:.42}.ach.locked .bdg{filter:grayscale(1);box-shadow:none}
+.xp-chip{display:inline-block;margin-left:6px;padding:3px 10px;border-radius:999px;font-weight:800;font-size:.8rem;color:#fff;background:var(--grad);box-shadow:0 0 16px rgba(122,60,245,.5);vertical-align:middle}
+.xp-pop{position:fixed;left:50%;top:calc(84px + env(safe-area-inset-top));z-index:95;transform:translateX(-50%);pointer-events:none;font-family:var(--sans);font-weight:800;font-size:1.5rem;
+ background:linear-gradient(100deg,#fff,#d6c4ff 50%,#8fbaff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px rgba(122,60,245,.8));animation:xpfloat 1.4s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes xpfloat{0%{opacity:0;transform:translate(-50%,14px) scale(.8)}18%{opacity:1;transform:translate(-50%,0) scale(1.08)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-26px) scale(1)}}
+.badge-pop{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));z-index:96;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:11px 16px 11px 11px;width:max-content;max-width:calc(100vw - 32px);
+ border-radius:18px;border:1px solid transparent;background:linear-gradient(rgba(18,8,38,.95),rgba(18,8,38,.95)) padding-box,var(--grad) border-box;box-shadow:0 16px 44px rgba(0,0,0,.6),0 0 34px rgba(122,60,245,.4);
+ animation:badgein .5s cubic-bezier(.2,.9,.3,1.2)}
+.badge-pop b{display:block;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#c4b2ff}.badge-pop span:not(.bdg){font-size:.88rem;font-weight:700;color:#fff}.badge-pop em{font-style:normal;color:#9fb6ff}
+@keyframes badgein{from{opacity:0;transform:translate(-50%,-16px) scale(.92)}}
+.levelup{position:fixed;inset:0;z-index:97;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 40%,rgba(122,60,245,.35),rgba(0,0,0,.86) 60%);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:fadein .3s ease-out}
+@keyframes fadein{from{opacity:0}}
+.lu-card{text-align:center;max-width:340px;animation:lupop .6s cubic-bezier(.2,.9,.3,1.3)}
+.lu-card h2{font-family:var(--sans);font-size:2.2rem;margin:6px 0 8px;background:var(--grad-text);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lu-card p{color:#d8ceff;margin-bottom:20px}
+@keyframes lupop{from{opacity:0;transform:scale(.7)}}
+@media(max-width:400px){.player .pc-top{flex-wrap:wrap}.flame{margin-left:auto}.ach-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.xpfill,.xp-pop,.badge-pop,.levelup,.lu-card{animation:none!important}}
+.player .xpbar{margin:16px 0 8px;height:12px}
+.pc-xp b{color:#fff;font-family:var(--sans)}
+.pc-who h3{margin:5px 0 0;font-size:1.3rem;line-height:1.2}
+.ach-grid{grid-template-columns:repeat(auto-fill,minmax(122px,1fr))}
+.ach{flex-direction:column;text-align:center;gap:8px;padding:14px 10px}
+.ach .bdg{width:50px;height:50px;flex-basis:50px;font-size:1.55rem;border-radius:16px}
+@media(max-width:400px){.player .pc-top{flex-wrap:nowrap;gap:12px}.medal{width:50px;height:50px;flex-basis:50px;border-radius:15px}.medal span{font-size:1.25rem}
+ .flame{min-width:0;padding:8px 10px}.flame b{font-size:1.15rem}.pc-who h3{font-size:1.1rem}.ach-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}}
 </style>
 </head>
 <body>
@@ -3629,9 +3679,9 @@ const KEY='safe-mlo-master-v1';
 const A5_BOOK=Object.freeze({width:148,height:210,ruleGap:6,lines:0});
 const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',clock:'on',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
- notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},seenVersion:'',lastResult:null,onboarded:true
+ notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},game:{bonus:0,badges:{}},seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='5.8';
+const APP_VERSION='5.9';
 const CALC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="5.8" width="8" height="3.6" rx="1"/><path d="M8.6 13h.01M12 13h.01M15.4 13h.01M8.6 16.6h.01M12 16.6h.01M15.4 16.6h.01" stroke-width="2.6"/></svg>';   // 5.4: the calculator button (calc.js)
 const WHATS_NEW=[
  'New on Home: Go or no-go, four green lights to hit before your ready check (rules seen, every area 75%, "Which is TRUE?" 70%, your last two full-length exams 80%). And My traps: the rules you keep missing, your own wrong pick next to the truth, with a button to practice just those.',
@@ -3671,6 +3721,7 @@ function loadState(storage){
   if(st.settings.set!=='new')st.settings.set='all';     // 4.9: the study-guide set is gone; anything else is All questions
   {const d=st.settings.difficulty;st.settings.difficulty={mixed:'standard','test-day':'standard',impossible:'insanity'}[d]||(LEVELS.includes(d)?d:'standard')}   // 5.5: the levels
   st.yolo={best:0,runs:0,wins:0,...(data.yolo||{})};
+  st.game={bonus:null,badges:{},...(data.game||{})};   // 5.9: bonus XP is worked out from his sessions the first time
   if(!data.schema){            // first open after the upgrade: the old letter-size page becomes an A5 page unless it was changed by hand
    const nb=data.notebook||{};if((!nb.width||nb.width===190)&&(!nb.height||nb.height===260))st.notebook={...A5_BOOK};
    st.schema=2;
@@ -3867,7 +3918,7 @@ function goPanel(){
 function renderDashboard(){
  const m=metricSummary(QUESTIONS,state.exposures,state.attempts);const cats=byCategoryMetrics(state.attempts);
  const todo=state.notes.filter(n=>!n.written).length;
- return `${whatsNew()}<section class="hero"><p class="welcome">Welcome Fidel Crispin JR</p><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}${button('yolo-start',`⚡ YOLO · best ${state.yolo?.best||0} of ${YOLO_GOAL}`,'ghost yolo-btn')}</div>${heroStats()}</section>
+ return `${whatsNew()}<section class="hero"><p class="welcome">Welcome Fidel Crispin JR</p><span class="eyebrow">YOUR PERSONAL STUDY EXPERIENCE</span><h1>Your next chapter<br/><span>starts here.</span></h1><p>Fresh questions. Real progress. Complete mastery.</p><div class="actions">${button('dash-practice','Continue Studying →','light')}${button('dash-exam','Take a Simulated Exam','ghost')}${button('yolo-start',`⚡ YOLO · best ${state.yolo?.best||0} of ${YOLO_GOAL}`,'ghost yolo-btn')}</div>${heroStats()}</section>${playerCard()}
  <section class="section two-col equal"><div>${goPanel()}</div><div>${trapsPanel()}</div></section>
  <section class="section two-col equal"><div>${planPanel()}</div><div>${readinessPanel()}</div></section>
  <section class="section"><div class="section-head"><h2>Your journey in numbers</h2><span class="chip">${nfmt(QUESTIONS.length)} questions · ${nfmt(m.total)} rules</span></div>
@@ -3945,6 +3996,7 @@ function buildReport(){
   `Recent by area: ${areas}`,
   `By question style: ${styles}`,
   (()=>{const g=goSignals();return `Go/no-go: ${g.green} of 4 green · `+g.lights.map((l,i)=>`${GO_LINES[i]}: ${l.ok?'yes':'no'} (${l.note})`).join(' · ')})(),
+  (()=>{const xp=xpTotal(),r=rankOf(xp),st=streakInfo(),g=gameOf(),e=BADGES.filter(b=>g.badges[b[0]]);return `Level ${r.lvl} ${r.title} · ${nfmt(xp)} XP · streak ${st.days} days (best ${st.best}) · badges ${e.length} of ${BADGES.length}: ${e.map(b=>b[2]).join(', ')||'none'}`})(),
   `YOLO: best ${state.yolo?.best||0} of ${YOLO_GOAL} in a row · ${state.yolo?.runs||0} runs · ${state.yolo?.wins||0} wins`,
   (()=>{const t=trapList();return `My traps: ${t.traps.length} open, ${t.fixed} fixed`+(t.traps.length?` · top: `+t.traps.slice(0,5).map(x=>`${x.q.id} picked "${clip(x.q.choices[x.pick],60)}"`).join(' · '):'')})(),
   `Exam window: ${state.plan.exam} to ${state.plan.last}`,'',`Rules missed twice or more (${missedRules.length}):`,...(missed.length?missed:['- none']),'',`Flagged questions (${state.notes.filter(n=>n.flagged).length}):`,...(flagged.length?flagged:['- none']),'',`Guessed (${gAt.length} answers, ${gRight} right by luck):`,...(guesses.length?guesses:['- none']),'',`My reports (${state.reports.length}):`,...(reps.length?reps:['- none'])].join('\n');
@@ -4022,14 +4074,14 @@ function renderResults(){
  const list=(f==='all'?rows:miss).map(x=>{const perm=d.perm?.[x.q.id];return `<article class="qcard ${x.ok?'ok':'miss'}"><div class="qcard-head"><span class="mark">${x.ok?'✓':'✗'}</span><b>Q${x.i+1}</b><span class="chip">${HTML(x.q.category)} · ${HTML(x.q.topic)}</span></div><p class="qcard-q">${HTML(x.q.prompt)}</p><p class="small ${x.ok?'good':'bad'}">${x.none?(d.timedOut?.[x.q.id]?'Time ran out.':'Not answered.'):`You chose ${letterOf(perm,x.a)}. ${HTML(x.q.choices[x.a])}`}${d.unsure?.[x.q.id]?' <span class="muted">(guessed)</span>':''}</p>${x.ok?'':`<p class="small good">Correct: ${letterOf(perm,x.q.correct)}. ${HTML(x.q.choices[x.q.correct])}</p>`}<details ${x.ok&&!d.unsure?.[x.q.id]?'':'open'}><summary>${x.ok?'Show the notes':'Notes'}</summary><div class="explanation" style="margin-top:10px">${noteHTML(x.q,perm,x.a)}</div>${reportRow(x.q.id)}</details></article>`}).join('');
  const mins=r.endedAt&&r.startedAt?Math.round((Date.parse(r.endedAt)-Date.parse(r.startedAt))/60000):null;
  return `${sectionTitle(r.type==='exam'?(r.total===120?'Full-length exam results':'Mini-exam results'):'Practice results',`${new Date(r.endedAt).toLocaleString()}${mins!==null?` · ${mins} min`:''}${r.expired?' · time expired':''}`)}
- <section class="hero" style="min-height:0">${r.yolo?`<span class="eyebrow">${r.yolo.won?'⚡ YOLO CONQUERED':'⚡ YOLO'}</span><h1>${r.yolo.best} in a row</h1><p>Goal: ${r.yolo.goal} in a row. ${r.yolo.restarts} restart${r.yolo.restarts===1?'':'s'}. ${r.correct} right out of ${r.total} answered. Your best ever: ${state.yolo?.best||0}.</p>`:`<span class="eyebrow">${r.passed?'AT OR ABOVE THE 75% PASS MARK':'BELOW THE 75% PASS MARK'}</span><h1>${r.pct}%</h1><p>${r.correct} correct out of ${r.total}. ${timedN?`${timedN} ran out of time. `:''}${r.total-r.answered-timedN} unanswered${r.total-r.answered-timedN>0?', and those go back to your fresh pile':''}. ${r.type==='exam'?'A practice score, not an official SAFE MLO score.':''}</p>`}<div class="actions">${miss.length?button('review-missed','Practice the ones I missed →','light'):''}${button('dash-analytics','See Analytics','ghost')}</div></section>
+ <section class="hero" style="min-height:0">${r.yolo?`<span class="eyebrow">${r.yolo.won?'⚡ YOLO CONQUERED':'⚡ YOLO'}</span><h1>${r.yolo.best} in a row</h1><p>Goal: ${r.yolo.goal} in a row. ${r.yolo.restarts} restart${r.yolo.restarts===1?'':'s'}. ${r.correct} right out of ${r.total} answered. Your best ever: ${state.yolo?.best||0}.${r.xp?` <span class="xp-chip">+${nfmt(r.xp)} XP</span>`:''}</p>`:`<span class="eyebrow">${r.passed?'AT OR ABOVE THE 75% PASS MARK':'BELOW THE 75% PASS MARK'}</span><h1>${r.pct}%</h1><p>${r.correct} correct out of ${r.total}. ${timedN?`${timedN} ran out of time. `:''}${r.total-r.answered-timedN} unanswered${r.total-r.answered-timedN>0?', and those go back to your fresh pile':''}. ${r.type==='exam'?'A practice score, not an official SAFE MLO score.':''}${r.xp?` <span class="xp-chip">+${nfmt(r.xp)} XP</span>`:''}</p>`}<div class="actions">${miss.length?button('review-missed','Practice the ones I missed →','light'):''}${button('dash-analytics','See Analytics','ghost')}</div></section>
  <section class="section"><div class="panel"><h3>By category</h3><table class="table"><thead><tr><th>Category</th><th>Right</th><th>Score</th></tr></thead><tbody>${CAT_CODES.filter(k=>byCat[k]).map(k=>`<tr><td>${k} · ${catText(k)}</td><td>${byCat[k].ok}/${byCat[k].n}</td><td>${Math.round(byCat[k].ok/byCat[k].n*100)}%</td></tr>`).join('')}</tbody></table></div></section>
  <section class="section">${readinessPanel()}</section>
  <section class="section"><div class="section-head"><h2>Question by question</h2><div class="actions"><button class="btn sm ${f==='missed'?'primary':'ghost'}" data-rfilter="missed">Missed or guessed (${miss.length})</button><button class="btn sm ${f==='all'?'primary':'ghost'}" data-rfilter="all">All ${rows.length}</button></div></div>
  ${list||'<div class="empty"><h3>No misses</h3><p>Every question on this one was right.</p></div>'}<p class="fineprint" style="margin-top:12px">Every answered question is also in your Notes.</p></section>`;
 }
 function renderAnalytics(){const m=metricSummary(QUESTIONS,state.exposures,state.attempts);const metrics=byCategoryMetrics(state.attempts);const sessions=state.sessions.slice(-12).reverse();
- return `${sectionTitle('Progress & Analytics','First-attempt knowledge is tracked separately from review questions.')}
+ return `${sectionTitle('Progress & Analytics','First-attempt knowledge is tracked separately from review questions.')}${playerCard()}${achievements()}
  <div class="stats"><div class="stat"><p class="meta">Rules answered</p><div class="number">${m.answered}</div></div><div class="stat"><p class="meta">Fresh rules left</p><div class="number">${m.fresh}</div></div><div class="stat"><p class="meta">First-attempt accuracy</p><div class="number">${pct(m.firstAccuracy)}</div></div></div>
  <section class="section">${readinessPanel()}</section>
  <section class="section"><div class="panel"><h3>Your outline</h3><p class="muted small" style="margin-bottom:10px">The NMLS exam outline with how you are doing: your last ${WINDOW_CAT} answers in each area and your last ${WINDOW_TOPIC} in each topic. Green is 75% or better, the passing score; red is below it. A topic gets its color after 3 answers, an area after 5. Learn starts a short lesson there.</p>${topicTable()}</div></section>
@@ -4084,8 +4136,8 @@ function clockLeft(s,id){return Math.max(0,Math.ceil(s.clock-(Date.now()-(s.qSta
 function tickClock(s){if(!s.clock)return;const id=s.questions[s.cursor],el=document.querySelector('#qclock');if(!el||s.revealed[id]||!s.qStart?.[id])return;
  const left=clockLeft(s,id);el.textContent=clockText(left);el.classList.toggle('low',left<=10);if(left===0){const q=QMAP.get(id);if(q)timeOut(s,q)}}
 // the clock ran out: a miss, and the answer is shown, like any wrong pick
-function timeOut(s,q){if(!s||s.revealed[q.id])return;JUST=q.id;s.revealed[q.id]=true;s.timedOut=s.timedOut||{};s.timedOut[q.id]=true;recordAttempt(q,null,s);
- addNote(q,null,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);persist();render()}
+function timeOut(s,q){if(!s||s.revealed[q.id])return;JUST=q.id;const g0=gameSnap();s.revealed[q.id]=true;s.timedOut=s.timedOut||{};s.timedOut[q.id]=true;recordAttempt(q,null,s);
+ addNote(q,null,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);persist();render();gameAfter(g0)}
 function yoloAfter(s,q,pick){const y=s.yolo,ok=pick===q.correct;y.log.push({id:q.id,pick,ok});
  if(ok){y.streak++;y.best=Math.max(y.best,y.streak);if(y.streak>=y.goal)y.won=true}
  state.yolo={...(state.yolo||{best:0,runs:0,wins:0}),best:Math.max(state.yolo?.best||0,y.best)}}
@@ -4101,6 +4153,64 @@ function yoloRestart(){const s=currentSession();if(!s||!s.yolo)return;const y=s.
  s.freshIds=[...new Set([...s.freshIds,...sel.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id)])];
  exposeQuestions(sel.questions);s.answers={};s.revealed={};s.qStart={};s.timedOut={};s.cursor=0;y.streak=0;y.restarts++;y.used=used;
  persist();render();window.scrollTo(0,0);toast('Back to question 1. All new questions.')}
+// ===== 5.9 game feel: XP, ranks, a daily streak, badges. XP comes from answers you have logged, so it is there from day one =====
+const LV_MULT={easy:.75,standard:1,hard:1.25,veteran:1.25,pro:1.5,insanity:2,yolo:1.5};
+const RANKS=[[0,'Rookie'],[400,'Applicant'],[1000,'Trainee'],[2000,'Loan Processor'],[3500,'Underwriter'],[5500,'Loan Officer'],[8000,'Senior Loan Officer'],[11500,'Branch Manager'],[16000,'Compliance Pro'],[22000,'MLO Master']];
+const STREAK_MIN=20;   // answers that make a day count
+function gameOf(){const g=state.game=state.game||{bonus:null,badges:{}};g.badges=g.badges||{};
+ if(g.bonus===null||g.bonus===undefined){g.bonus=state.sessions.filter(x=>x.type==='exam'&&x.total===120).reduce((t,x)=>t+100+(x.pct>=75?150:0),0)+(state.yolo?.wins||0)*250}return g}
+function xpOf(a){if(a.selected===null&&!a.correct)return 1;const x=a.correct?(a.guessed?5:a.isFirst?12:8):2;return Math.round(x*(LV_MULT[a.level]||1))}
+function xpTotal(){let x=gameOf().bonus;for(const a of state.attempts)x+=xpOf(a);return x}
+function rankOf(xp){let i=0;while(i+1<RANKS.length&&xp>=RANKS[i+1][0])i++;return {lvl:i+1,title:RANKS[i][1],at:RANKS[i][0],next:RANKS[i+1]?.[0]??null,nextTitle:RANKS[i+1]?.[1]??null}}
+function streakInfo(){const per={};for(const a of state.attempts){const t=new Date(a.answeredAt);if(!isNaN(t))per[isoDay(t)]=(per[isoDay(t)]||0)+1}
+ const off=new Set(state.plan?.off||[]),today=dayOf(new Date()),done=per[isoDay(today)]||0;
+ let d=done>=STREAK_MIN?today:addD(today,-1),days=0;
+ for(let i=0;i<400;i++){const k=isoDay(d);if((per[k]||0)>=STREAK_MIN)days++;else if(!off.has(k))break;d=addD(d,-1)}
+ const keys=Object.keys(per).sort();let best=0,run=0;
+ if(keys.length){for(let d2=new Date(keys[0]+'T12:00:00');dayOf(d2)<=today;d2=addD(d2,1)){const k=isoDay(d2);if((per[k]||0)>=STREAK_MIN){run++;best=Math.max(best,run)}else if(!off.has(k)&&dayOf(d2)<today)run=0}}
+ return {days,best:Math.max(best,days),today:done,need:Math.max(0,STREAK_MIN-done)}}
+const BADGES=[
+ ['first','🌱','First Step','Answer your first question',G=>G.n>=1],
+ ['century','💯','Century','Answer 100 questions',G=>G.n>=100],
+ ['grinder','⚙️','Grinder','Answer 1,000 questions',G=>G.n>=1000],
+ ['hot10','🔥','On Fire','10 right in a row',G=>G.bestRun>=10],
+ ['hot25','☄️','Unstoppable','25 right in a row',G=>G.bestRun>=25],
+ ['pass','✅','Pass Mark','75%+ on a set of 10 or more',G=>G.set(10,75)],
+ ['sharp','🎯','Sharpshooter','90%+ on a set of 20 or more',G=>G.set(20,90)],
+ ['math','🧮','Number Cruncher','25 math questions right',G=>G.math>=25],
+ ['traps','🪤','Trap Slayer','Fix 10 of your traps',G=>G.traps>=10],
+ ['half','🗺️','Halfway There','See half of all the rules',G=>G.cover>=.5],
+ ['explorer','🧭','Explorer','See 90% of the rules',G=>G.cover>=.9],
+ ['truth','⚖️','Truth Seeker','70%+ on your last 40 "Which is TRUE?"',G=>G.go.lights[2].ok],
+ ['week','📅','Week Warrior','A 7-day streak',G=>G.st.best>=7],
+ ['full','🏁','Full Send','Finish a full-length exam',G=>G.full.length>=1],
+ ['ready','🎓','Exam Ready','80%+ on a full-length exam',G=>G.full.some(x=>x.pct>=80)],
+ ['yolo10','⚡','Daredevil','10 in a row in YOLO',G=>(G.yolo.best||0)>=10],
+ ['yolo','👑','YOLO Legend','Win YOLO: 25 in a row',G=>(G.yolo.wins||0)>=1],
+ ['insane','🤯','Certified Insane','75%+ on an Insanity set of 10+',G=>G.insane],
+ ['go','🚀','Go Time','All four Go or no-go lights green',G=>G.go.green===4]];
+function gameFacts(){const A=state.attempts,S=state.sessions;let run=0,bestRun=0;for(const a of A){if(a.correct){if(!a.guessed){run++;bestRun=Math.max(bestRun,run)}}else run=0}
+ const m=metricSummary(QUESTIONS,state.exposures,state.attempts);
+ return {n:A.length,bestRun,set:(min,p)=>S.some(x=>x.total>=min&&x.answered>=min&&x.pct>=p),full:S.filter(x=>x.type==='exam'&&x.total===120),cover:m.total?m.answered/m.total:0,
+  go:goSignals(),st:streakInfo(),math:A.filter(a=>a.isMath&&a.correct).length,traps:trapList().fixed,yolo:state.yolo||{},insane:S.some(x=>x.difficulty==='insanity'&&x.total>=10&&x.pct>=75)}}
+// badges stay once earned; returns the ones earned just now
+function gameSync(){const g=gameOf(),G=gameFacts(),now=new Date().toISOString(),fresh=[];for(const b of BADGES)if(!g.badges[b[0]]&&b[4](G)){g.badges[b[0]]=now;fresh.push(b)}return fresh}
+function gameSnap(){const xp=xpTotal();return {xp,lvl:rankOf(xp).lvl}}
+function gameAfter(g0){const xp=xpTotal(),gain=xp-g0.xp,r=rankOf(xp),fresh=gameSync();persist();
+ setTimeout(()=>{if(gain>0)xpPop(gain);if(r.lvl>g0.lvl)levelUp(r);if(fresh.length)setTimeout(()=>badgePop(fresh),r.lvl>g0.lvl?600:250)},30)}
+function xpPop(n){document.querySelector('.xp-pop')?.remove();const el=document.createElement('div');el.className='xp-pop';el.setAttribute('aria-hidden','true');el.textContent=`+${nfmt(n)} XP`;document.body.append(el);setTimeout(()=>el.remove(),1500)}
+function badgePop(list){document.querySelector('.badge-pop')?.remove();const b=list[0],el=document.createElement('div');el.className='badge-pop';el.setAttribute('role','status');
+ el.innerHTML=`<span class="bdg big">${b[1]}</span><div><b>Badge unlocked</b><span>${HTML(b[2])} · ${HTML(b[3])}${list.length>1?` <em>+${list.length-1} more</em>`:''}</span></div>`;document.body.append(el);setTimeout(()=>el.remove(),3600)}
+function levelUp(r){document.querySelector('.levelup')?.remove();const el=document.createElement('div');el.className='levelup';el.setAttribute('role','dialog');el.setAttribute('aria-label','Level up');
+ el.innerHTML=`<div class="lu-card"><div class="medal big"><span>${r.lvl}</span></div><span class="eyebrow">LEVEL UP</span><h2>${HTML(r.title)}</h2><p>Level ${r.lvl}${r.next?` · next: ${HTML(r.nextTitle)} at ${nfmt(r.next)} XP`:' · the top rank'}</p><button class="btn primary" type="button">Let's go →</button></div>`;
+ el.addEventListener('click',()=>el.remove());document.body.append(el);confetti();setTimeout(()=>el.remove(),5200)}
+function playerCard(){const xp=xpTotal(),r=rankOf(xp),st=streakInfo(),g=gameOf(),earned=BADGES.filter(b=>g.badges[b[0]]),span=r.next?r.next-r.at:1,pct=r.next?Math.round((xp-r.at)/span*100):100;
+ return `<section class="section"><div class="panel player"><div class="pc-top"><div class="medal"><span>${r.lvl}</span></div><div class="pc-who"><span class="eyebrow">LEVEL ${r.lvl} OF ${RANKS.length}</span><h3>${HTML(r.title)}</h3></div>
+ <div class="flame${st.days?' on':''}"><b>🔥 ${st.days}</b><span>day streak</span></div></div>
+ <div class="xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="xpfill" style="width:${pct}%"></div></div><p class="small muted pc-xp"><b>${nfmt(xp)} XP</b> · ${r.next?`${nfmt(r.next-xp)} to ${HTML(r.nextTitle)}`:'Top rank. MLO Master.'}</p>
+ <div class="pc-badges">${earned.length?earned.slice(-7).map(b=>`<span class="bdg" title="${HTML(b[2])}">${b[1]}</span>`).join(''):'<span class="small muted">No badges yet. Your first one is one answer away.</span>'}<button class="linkish" data-route="analytics">${earned.length} of ${BADGES.length} badges →</button></div>
+ <p class="small muted pc-note">${st.need?`Answer ${st.need} more today to ${st.days?`keep your ${st.days}-day streak`:'start a streak'}.`:`Streak locked in for today: ${st.today} answered.`} Right answers earn 12 XP the first time, 8 after; tries earn 2; harder levels earn more.</p></div></section>`}
+function achievements(){const g=gameOf();return `<section class="section"><div class="panel"><div class="section-head"><h2>Badges</h2><span class="chip">${BADGES.filter(b=>g.badges[b[0]]).length} of ${BADGES.length}</span></div><div class="ach-grid">${BADGES.map(b=>{const at=g.badges[b[0]];return `<div class="ach${at?'':' locked'}"><span class="bdg">${b[1]}</span><div><b>${HTML(b[2])}</b><span>${HTML(b[3])}</span></div></div>`}).join('')}</div></div></section>`}
 // 5.6: the readiness ring and the countdown on Home
 function heroStats(){const R=readiness(mastery(state.attempts),state.sessions),P=planInfo(),none=R.status==='collecting',pct=none?0:Math.max(0,Math.min(100,R.score)),C=326.73;
  const day=P.exam instanceof Date?P.exam.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
@@ -4128,17 +4238,18 @@ function startSession(type,override){if(state.active){if(!confirm('Replace your 
  if(state.active)releaseSeen(state,state.active.questions);exposeQuestions(selected.questions);state.active=active;state.route=type;persist();render();window.scrollTo(0,0);toast(`Started: ${selected.freshCount} fresh · ${selected.reviewCount} review${selected.againCount?` · ${selected.againCount} new wording`:''}${selected.repeats?` · ${selected.repeats} seen before`:''}`);
 }
 function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family===q.family);const correct=chosen===q.correct;
- state.attempts.push({id:newId(),questionId:q.id,family:q.family,category:q.category,code:q.code,guessed:!!s.unsure?.[q.id],isMath:q.isMath,selected:chosen,correct,isFirst:!prior,wasFreshAtStart:s.freshIds.includes(q.id),sessionId:s.id,mode:s.mode,answeredAt:new Date().toISOString()});
+ state.attempts.push({id:newId(),level:s.difficulty||'standard',questionId:q.id,family:q.family,category:q.category,code:q.code,guessed:!!s.unsure?.[q.id],isMath:q.isMath,selected:chosen,correct,isFirst:!prior,wasFreshAtStart:s.freshIds.includes(q.id),sessionId:s.id,mode:s.mode,answeredAt:new Date().toISOString()});
  const e=state.exposures[q.family]||(state.exposures[q.family]={seenIds:[q.id],exposureCount:1,lapses:0});e.lastAnsweredAt=new Date().toISOString();e.lastCorrect=correct;if(!correct)e.lapses=(e.lapses||0)+1;else e.confusing=false;
  if(!prior){e.firstCorrect=correct;e.firstAnsweredAt=e.lastAnsweredAt}
 }
 function selectAnswer(index){const s=currentSession();if(!s)return;const q=QMAP.get(s.questions[s.cursor]);if(!q)return;
  if(s.type==='practice'&&s.revealed[q.id])return;
  if(s.type==='exam'){s.answers[q.id]=index}
- else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);if(s.yolo){yoloAfter(s,q,index);if(s.yolo.won&&!s.yolo.party){s.yolo.party=true;setTimeout(confetti,80)}}JUST=q.id}
+ else{const g0=gameSnap();s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);if(s.yolo){yoloAfter(s,q,index);if(s.yolo.won&&!s.yolo.party){s.yolo.party=true;setTimeout(confetti,80)}}JUST=q.id;gameAfter(g0)}
  persist();render();}
 function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect, and their rules go back to your fresh pile.`))return}
+ const g0=gameSnap();
  if(s.type==='exam'){for(const id of s.questions){if(Number.isInteger(s.answers[id])){const q=QMAP.get(id);recordAttempt(q,s.answers[id],s);addNote(q,s.answers[id],s.perm[id],s.id,s.flags.includes(id),!!s.unsure?.[id])}}}
  for(const id of s.flags){const q=QMAP.get(id);if(q&&!state.notes.some(n=>n.session===s.id&&n.qid===id))addNote(q,Number.isInteger(s.answers[id])?s.answers[id]:null,s.perm[id],s.id,true,!!s.unsure?.[id])}   // flagged and skipped: still a note, so you can study it
  releaseSeen(state,s.questions);   // the ones you did not answer go back
@@ -4146,9 +4257,11 @@ function finishSession(expired=false){const s=currentSession();if(!s)return;
   if(s.yolo.log.length)state.yolo={best:Math.max(state.yolo?.best||0,s.yolo.best),runs:(state.yolo?.runs||0)+1,wins:(state.yolo?.wins||0)+(s.yolo.won?1:0)}}
  const r=scoreSession(s,QUESTIONS);
  if(s.yolo?s.yolo.won:(r.total>=10&&r.pct>=75))setTimeout(confetti,300);
- state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,yolo:s.yolo?{best:s.yolo.best,restarts:s.yolo.restarts,won:s.yolo.won,goal:s.yolo.goal}:undefined,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[],timedOut:s.timedOut||{}}});
+ const bonus=(s.type==='exam'&&s.questions.length===120?100+(r.pct>=75?150:0):0)+(s.yolo?.won?250:0);gameOf().bonus+=bonus;   // 5.9: a full exam and a YOLO win pay extra
+ const sessXP=state.attempts.filter(a=>a.sessionId===s.id).reduce((t,a)=>t+xpOf(a),0)+bonus;
+ state.sessions.push({id:s.id,type:s.type,mode:s.mode,difficulty:s.difficulty||'standard',xp:sessXP,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,yolo:s.yolo?{best:s.yolo.best,restarts:s.yolo.restarts,won:s.yolo.won,goal:s.yolo.goal}:undefined,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[],timedOut:s.timedOut||{}}});
  state.sessions=state.sessions.slice(-150);let kept=0;for(let i=state.sessions.length-1;i>=0;i--){if(state.sessions[i].detail&&++kept>DETAIL_KEEP)delete state.sessions[i].detail}
- state.active=null;state.lastResult=s.id;state.resultsFilter=r.correct===r.total&&!Object.values(s.unsure||{}).some(Boolean)?'all':'missed';state.route='results';persist();render();window.scrollTo(0,0);
+ state.active=null;state.lastResult=s.id;state.resultsFilter=r.correct===r.total&&!Object.values(s.unsure||{}).some(Boolean)?'all':'missed';state.route='results';persist();render();window.scrollTo(0,0);gameAfter(g0);
 }
 function showNoteEditor(id){const old=id?state.notes.find(n=>n.id===id):null;const modal=document.createElement('div');modal.className='modal-backdrop';modal.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-label="Notebook note editor"><h2>${old?'Edit entry':'New notebook entry'}</h2><div class="field" style="margin:16px 0"><label for="note-title">Title</label><input id="note-title" value="${HTML(old?.title||'My Study Note')}" maxlength="160"></div><div class="field"><label for="note-content">Note content</label><textarea id="note-content" rows="11" maxlength="6000">${HTML(old?.content||'')}</textarea></div><label class="check" style="margin-top:13px"><input id="note-math" type="checkbox" ${old?.isMath?'checked':''}> Dedicated mathematics page</label><div class="modal-actions" style="margin-top:20px"><button class="btn ghost" data-act="close-modal">Cancel</button><button class="btn primary" data-act="confirm-note" data-note-id="${HTML(id||'')}">Save Note</button></div></div>`;document.body.append(modal);modal.querySelector('#note-title').focus()}
 function downloadFile(name,text,type){const blob=new Blob([text],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
@@ -4238,17 +4351,17 @@ document.addEventListener('change',async e=>{
  const pl=e.target.closest('[data-plan]');if(pl&&pl.dataset.plan==='fullDay'){const v=+pl.value;if(v>=0&&v<=6){state.plan.fullDay=v;persist();render();toast(`Full-length exams on ${DAYS[v]}s.`)}return}
  if(pl){const v=pl.value;if(parseDay(v)){state.plan[pl.dataset.plan]=v;if(pl.dataset.plan==='exam'&&parseDay(state.plan.last)<parseDay(v))state.plan.last=v;persist();render();toast('Exam date saved.')}return}
  const notebook=e.target.closest('[data-notebook]');if(notebook){notebookConfig(notebook.dataset.notebook,notebook.value);return}
- if(e.target.id==='import-file'){const file=e.target.files?.[0];if(!file)return;try{const payload=JSON.parse(await file.text());const restored=validateImport(payload);if(!confirm('Replace ALL local progress with this backup?'))return;localStorage.setItem(KEY,JSON.stringify(restored));state=loadState();state.route='dashboard';persist();render();toast('Backup imported.')}catch(error){toast(error.message||'Could not import backup.',true)}}
+ if(e.target.id==='import-file'){const file=e.target.files?.[0];if(!file)return;try{const payload=JSON.parse(await file.text());const restored=validateImport(payload);if(!confirm('Replace ALL local progress with this backup?'))return;localStorage.setItem(KEY,JSON.stringify(restored));state=loadState();state.route='dashboard';gameSync();persist();render();toast('Backup imported.')}catch(error){toast(error.message||'Could not import backup.',true)}}
 });
 document.addEventListener('input',e=>{const t=e.target.closest('[data-mine]');if(!t)return;const n=state.notes.find(x=>x.id===t.dataset.mine);if(n){n.mine=t.value.slice(0,1000);clearTimeout(mineTimer);
  mineTimer=setTimeout(()=>{persist();const c=document.querySelector(`.a5wrap[data-note="${n.id}"]`);if(c){c.querySelector('.a5in').dataset.tier='1';fitPages(c.parentElement)}},400)}});
 window.addEventListener('hashchange',()=>{const hash=window.location.hash.slice(1);if(navs.some(([r])=>r===hash)){state.route=hash;render()}});
 window.addEventListener('resize',()=>{if(state.route==='notebook')fitSheets()});
 if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=location.hash.slice(1);
-render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
+gameSync();render();persist();        // 5.9: badges already earned are filed quietly. Saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261020174409-cd5f5371',OPENED=Date.now();
+const BUILD='20261020181404-b489398f',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -4266,7 +4379,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,releaseSeen,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,releaseSeen,xpTotal,rankOf,streakInfo,gameSync,BADGES,render:()=>render()};
 
 // 5.4: a basic calculator, like the one the test center gives you (no personal calculators are allowed there).
 // It works left to right like a handheld: 2 + 3 × 4 = 20. % and memory work the handheld way too. It lives outside the app's
