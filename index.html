@@ -3323,7 +3323,7 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'mixed',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='5.2';
+const APP_VERSION='5.3';
 const WHATS_NEW=[
  'New on Home: Go or no-go, four green lights to hit before your ready check (rules seen, every area 75%, "Which is TRUE?" 70%, your last two full-length exams 80%). And My traps: the rules you keep missing, your own wrong pick next to the truth, with a button to practice just those.',
  'Home now greets you: Welcome Fidel Crispin JR.',
@@ -3367,6 +3367,7 @@ function loadState(storage){
   if(!Array.isArray(st.plan.off))st.plan.off=[...DEFAULTS.plan.off];if(!Array.isArray(st.page.samples))st.page.samples=[];
   if(st.active&&(!Array.isArray(st.active.questions)||st.active.questions.some(id=>!QMAP.has(id))))st.active=null;
   if(st.active&&!st.active.perm)st.active.perm=makePerms(st.active.questions.map(id=>QMAP.get(id)));
+  releaseSeen(st,Object.values(st.exposures).flatMap(e=>Array.isArray(e?.seenIds)?e.seenIds:[]),new Set(st.active?st.active.questions:[]));   // 5.3: shown but never answered is not seen
   return st;
  }catch{return structuredClone(DEFAULTS)}
 }
@@ -3702,7 +3703,7 @@ function renderResults(){
  const list=(f==='all'?rows:miss).map(x=>{const perm=d.perm?.[x.q.id];return `<article class="qcard ${x.ok?'ok':'miss'}"><div class="qcard-head"><span class="mark">${x.ok?'✓':'✗'}</span><b>Q${x.i+1}</b><span class="chip">${HTML(x.q.category)} · ${HTML(x.q.topic)}</span></div><p class="qcard-q">${HTML(x.q.prompt)}</p><p class="small ${x.ok?'good':'bad'}">${x.none?'Not answered.':`You chose ${letterOf(perm,x.a)}. ${HTML(x.q.choices[x.a])}`}${d.unsure?.[x.q.id]?' <span class="muted">(guessed)</span>':''}</p>${x.ok?'':`<p class="small good">Correct: ${letterOf(perm,x.q.correct)}. ${HTML(x.q.choices[x.q.correct])}</p>`}<details ${x.ok&&!d.unsure?.[x.q.id]?'':'open'}><summary>${x.ok?'Show the notes':'Notes'}</summary><div class="explanation" style="margin-top:10px">${noteHTML(x.q,perm,x.a)}</div>${reportRow(x.q.id)}</details></article>`}).join('');
  const mins=r.endedAt&&r.startedAt?Math.round((Date.parse(r.endedAt)-Date.parse(r.startedAt))/60000):null;
  return `${sectionTitle(r.type==='exam'?(r.total===120?'Full-length exam results':'Mini-exam results'):'Practice results',`${new Date(r.endedAt).toLocaleString()}${mins!==null?` · ${mins} min`:''}${r.expired?' · time expired':''}`)}
- <section class="hero" style="min-height:0"><span class="eyebrow">${r.passed?'AT OR ABOVE THE 75% PASS MARK':'BELOW THE 75% PASS MARK'}</span><h1>${r.pct}%</h1><p>${r.correct} correct out of ${r.total}. ${r.total-r.answered} unanswered. ${r.type==='exam'?'A practice score, not an official SAFE MLO score.':''}</p><div class="actions">${miss.length?button('review-missed','Practice the ones I missed →','light'):''}${button('dash-analytics','See Analytics','ghost')}</div></section>
+ <section class="hero" style="min-height:0"><span class="eyebrow">${r.passed?'AT OR ABOVE THE 75% PASS MARK':'BELOW THE 75% PASS MARK'}</span><h1>${r.pct}%</h1><p>${r.correct} correct out of ${r.total}. ${r.total-r.answered} unanswered${r.total>r.answered?', and those go back to your fresh pile':''}. ${r.type==='exam'?'A practice score, not an official SAFE MLO score.':''}</p><div class="actions">${miss.length?button('review-missed','Practice the ones I missed →','light'):''}${button('dash-analytics','See Analytics','ghost')}</div></section>
  <section class="section"><div class="panel"><h3>By category</h3><table class="table"><thead><tr><th>Category</th><th>Right</th><th>Score</th></tr></thead><tbody>${CAT_CODES.filter(k=>byCat[k]).map(k=>`<tr><td>${k} · ${catText(k)}</td><td>${byCat[k].ok}/${byCat[k].n}</td><td>${Math.round(byCat[k].ok/byCat[k].n*100)}%</td></tr>`).join('')}</tbody></table></div></section>
  <section class="section">${readinessPanel()}</section>
  <section class="section"><div class="section-head"><h2>Question by question</h2><div class="actions"><button class="btn sm ${f==='missed'?'primary':'ghost'}" data-rfilter="missed">Missed or guessed (${miss.length})</button><button class="btn sm ${f==='all'?'primary':'ghost'}" data-rfilter="all">All ${rows.length}</button></div></div>
@@ -3747,8 +3748,15 @@ function renderSettings(){return `${sectionTitle('Settings & Backup','Your work 
  <div class="panel"><h3>Data portability</h3><p class="muted small" style="margin:10px 0 18px">Download your attempts, questions seen, session history, settings, and notebook as JSON. You can restore the backup on another device.</p><div class="data-actions">${button('export-data','↓ Export JSON Backup','primary')}<label class="btn ghost">↑ Import JSON Backup<input id="import-file" type="file" accept=".json,application/json" hidden></label>${button('clear-data','Reset All Local Progress','danger')}</div></div>
  <div class="panel"><h3>Application information</h3><p class="muted small">Version ${APP_VERSION} · ${nfmt(QUESTIONS.length)} questions on ${nfmt(FAMILIES.size)} rules (your original 47 plus the MLO Prep rule bank), each with its source · Works offline once opened · No account or server.</p></div>
  <div class="notice warn" style="margin-top:15px">Regulatory requirements change. Always confirm official NMLS and CFPB requirements before relying on legal statements in the study bank. This is not an official exam or verified pass predictor.</div>`}
+// 5.3: a question you were shown but never answered does not count as seen. Its wording leaves the seen list, and a rule with nothing
+// answered goes back to your fresh pile (unless you marked it confusing). Runs when a session ends, is replaced, and on every open.
+function releaseSeen(st,ids,keep=new Set()){const answered=new Set(st.attempts.map(a=>a.questionId)),fams=new Set(st.attempts.map(a=>a.family));let n=0;
+ for(const id of ids){if(answered.has(id)||keep.has(id))continue;const q=QMAP.get(id);if(!q)continue;const e=st.exposures[q.family];if(!e||!Array.isArray(e.seenIds)||!e.seenIds.includes(id))continue;
+  e.seenIds=e.seenIds.filter(x=>x!==id);e.exposureCount=Math.max(0,(e.exposureCount||1)-1);n++;
+  if(!e.seenIds.length&&!fams.has(q.family)&&!e.confusing)delete st.exposures[q.family]}
+ return n}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
-function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? Its unanswered questions will stay marked as seen.'))return}
+function startSession(type,override){if(state.active){if(!confirm('Replace your unfinished session? The questions you did not answer go back to your fresh pile.'))return}
  const request={...state.settings,...(override||{})};if(type==='exam'&&!override)request.count=state.settings.examCount;
  if(type==='exam'){request.exact=true;if(request.mode==='learn')request.mode='adaptive';if(request.statements==='more')request.statements='normal'}   // exams keep the real mix
  const selected=selectQuestions(QUESTIONS,state.exposures,state.attempts,request);
@@ -3756,7 +3764,7 @@ function startSession(type,override){if(state.active){if(!confirm('Replace your 
  if(selected.shortage>0&&!confirm(`Only ${selected.available} of ${selected.requested} eligible questions are available. Start a shorter set with no repeats?`))return;
  const lessonFor=type==='practice'&&request.mode!=='learn'?selected.questions.filter(q=>{const e=state.exposures[q.family];return e&&(e.confusing||((e.lapses||0)>=2&&e.lastCorrect===false))}).map(q=>q.id):[];
  const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,statements:request.statements,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{}};
- exposeQuestions(selected.questions);state.active=active;state.route=type;persist();render();window.scrollTo(0,0);toast(`Started: ${selected.freshCount} fresh · ${selected.reviewCount} review${selected.againCount?` · ${selected.againCount} new wording`:''}${selected.repeats?` · ${selected.repeats} seen before`:''}`);
+ if(state.active)releaseSeen(state,state.active.questions);exposeQuestions(selected.questions);state.active=active;state.route=type;persist();render();window.scrollTo(0,0);toast(`Started: ${selected.freshCount} fresh · ${selected.reviewCount} review${selected.againCount?` · ${selected.againCount} new wording`:''}${selected.repeats?` · ${selected.repeats} seen before`:''}`);
 }
 function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family===q.family);const correct=chosen===q.correct;
  state.attempts.push({id:newId(),questionId:q.id,family:q.family,category:q.category,code:q.code,guessed:!!s.unsure?.[q.id],isMath:q.isMath,selected:chosen,correct,isFirst:!prior,wasFreshAtStart:s.freshIds.includes(q.id),sessionId:s.id,mode:s.mode,answeredAt:new Date().toISOString()});
@@ -3769,9 +3777,10 @@ function selectAnswer(index){const s=currentSession();if(!s)return;const q=QMAP.
  else{s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id])}
  persist();render();}
 function finishSession(expired=false){const s=currentSession();if(!s)return;
- if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect.`))return}
+ if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect, and their rules go back to your fresh pile.`))return}
  if(s.type==='exam'){for(const id of s.questions){if(Number.isInteger(s.answers[id])){const q=QMAP.get(id);recordAttempt(q,s.answers[id],s);addNote(q,s.answers[id],s.perm[id],s.id,s.flags.includes(id),!!s.unsure?.[id])}}}
  for(const id of s.flags){const q=QMAP.get(id);if(q&&!state.notes.some(n=>n.session===s.id&&n.qid===id))addNote(q,Number.isInteger(s.answers[id])?s.answers[id]:null,s.perm[id],s.id,true,!!s.unsure?.[id])}   // flagged and skipped: still a note, so you can study it
+ releaseSeen(state,s.questions);   // the ones you did not answer go back
  const r=scoreSession(s,QUESTIONS);
  state.sessions.push({id:s.id,type:s.type,mode:s.mode,startedAt:s.startedAt,endedAt:new Date().toISOString(),expired,...r,detail:{questions:s.questions,answers:s.answers,perm:s.perm,unsure:s.unsure||{},flags:s.flags||[]}});
  state.sessions=state.sessions.slice(-150);let kept=0;for(let i=state.sessions.length-1;i>=0;i--){if(state.sessions[i].detail&&++kept>DETAIL_KEEP)delete state.sessions[i].detail}
@@ -3831,7 +3840,7 @@ document.addEventListener('click',e=>{
   persist();render();if(s.unsure[id])toast('Marked as a guess. It goes in your Guessed notes, and a right guess still comes back for review.')}break;
  case 'flag':if(s){const id=s.questions[s.cursor],on=!s.flags.includes(id);s.flags=on?[...s.flags,id]:s.flags.filter(x=>x!==id);const n=state.notes.find(x=>x.session===s.id&&x.qid===id);if(n)n.flagged=on;persist();render();if(on)toast('Flagged. It goes to the top of your Notes.')}break;
  case 'end-session':finishSession();break;
- case 'leave-session':state.active=null;persist();render();break;
+ case 'leave-session':if(state.active)releaseSeen(state,state.active.questions);state.active=null;persist();render();break;
  case 'new-note':showNoteEditor(null);break;
  case 'reset-notes':{const n=state.notes.length;if(!n){toast('No notes to reset.');break}if(!confirm(`Delete all ${n} notes, flagged ones too? Your scores and progress stay. This can't be undone.`))break;state.notes=[];state.notesView={...state.notesView,filter:'flag',list:20};persist();render();window.scrollTo(0,0);toast('Notes reset. Your next answers start a fresh list.');break}
  case 'more-list':state.notesView.list+=20;persist();render();break;
@@ -3875,7 +3884,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 render();persist();        // saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261019213918-dc399253',OPENED=Date.now();
+const BUILD='20261020041648-f21f89d9',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -3893,7 +3902,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,releaseSeen,render:()=>render()};
 
 </script>
 </body>
