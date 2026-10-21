@@ -113,7 +113,7 @@
 .trap-list,.go-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}.trap{border:1px solid rgba(150,140,255,.18);border-radius:14px;padding:12px;background:rgba(255,255,255,.02)}.trap p{margin:6px 0 0;font-size:.92rem;line-height:1.45}.trap-top{display:flex;justify-content:space-between;align-items:center}.lbl.trap-bad{color:#ff8f9e}.lbl.trap-good{color:#5ee6a8}.go-list li{display:flex;gap:10px;align-items:flex-start;font-size:.93rem}.go-list .dot{flex:0 0 12px;height:12px;border-radius:50%;margin-top:5px;background:#ff6b7f;box-shadow:0 0 8px #ff6b7f88}.go-list li.on .dot{background:#5ee6a8;box-shadow:0 0 8px #5ee6a888}
 
 /* ===== 5.4 · SAFE MLO MASTERY: black, dark purple, and a purple → violet → indigo → blue glow. Red = wrong, green = right. ===== */
-:root{--bg:#000;--surface:#0c0617;--surface2:#140a26;--edge:#2a1a48;--text:#fff;--muted:#b0a6cc;
+:root{--ring1:#D08CFF;--ring2:#7A3CF5;--ring3:#2F7BFF;--bg:#000;--surface:#0c0617;--surface2:#140a26;--edge:#2a1a48;--text:#fff;--muted:#b0a6cc;
  --purple:#9B20EA;--violet:#7A3CF5;--indigo:#3F2FCB;--blue:#2F7BFF;--dpurple:#1B0B36;--lav:#C9B8FF;--sky:#9CC0FF;
  --grad:linear-gradient(118deg,#9B20EA 0%,#7A3CF5 34%,#3F2FCB 68%,#2F7BFF 100%);
  --grad-text:linear-gradient(100deg,#fff 0%,#d8c9ff 48%,#8fb8ff 100%);
@@ -456,6 +456,19 @@ button.chip.qclock{cursor:pointer;font:inherit;font-size:.7rem;font-weight:750}
  .flame{min-width:0;padding:8px 10px}.flame b{font-size:1.15rem}.pc-who h3{font-size:1.1rem}.ach-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}}
 /* 6.0: the SAFE MLO logo in the menu */
 .brand-icon{background:#000 url(icon-192.png) center/cover no-repeat;font-size:0;color:transparent;width:46px;height:46px;border-radius:14px;box-shadow:0 6px 24px rgba(122,60,245,.55),0 0 0 1px rgba(165,125,255,.35)}
+
+/* ===== 6.1 · Themes: the picker in Settings ===== */
+.themes{margin-bottom:6px}
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.theme-card{position:relative;text-align:left;padding:11px;border-radius:17px;border:1px solid rgba(255,255,255,.12);background:var(--sb);color:#fff;display:grid;gap:5px;font:inherit;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.theme-card:hover{transform:translateY(-2px)}
+.theme-card b{font-family:var(--sans);font-size:.92rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tc-swatch{height:48px;border-radius:12px;background:linear-gradient(118deg,var(--s1) 0%,var(--s2) 34%,var(--s3) 68%,var(--s4) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 18px rgba(0,0,0,.45)}
+.tc-note{font-size:.72rem;color:rgba(255,255,255,.66);line-height:1.35}
+.tc-def{font-size:.55rem;letter-spacing:.12em;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff}
+.theme-card.on{border-color:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(255,255,255,.25),0 10px 30px rgba(0,0,0,.5)}
+.tc-check{position:absolute;top:17px;right:17px;width:24px;height:24px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-weight:900;font-size:.8rem;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+@media(max-width:400px){.theme-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -3677,15 +3690,69 @@ function fitHandwriting(c,n,actual){
  return hits.length?hits[hits.length>>1]:best.cpl;
 }
 
+// 6.1: color themes. Midnight is the look as built. Every other theme is made from it at runtime: each color in the purple-to-blue family
+// is swapped for that theme's colors (dark surfaces, mid accents and light tints each their own way), while black, white, grays, the
+// green that means right, the red that means wrong and the amber warnings stay exactly as they are. Only the color properties are
+// re-declared, all with the same extra weight, so the cascade between them is unchanged.
+const THEMES={
+ midnight:{name:'Midnight',note:'Purple, violet, indigo and blue on black'},
+ ocean:{name:'Ocean',note:'Deep blue to cyan on navy black',keys:[[277,214,1,0],[263,204,1,0],[246,222,.95,0],[218,188,1,.02]],surf:[224,.6],tint:[200,.9]},
+ gold:{name:'Black Gold',note:'Gold and champagne on pure black',keys:[[277,42,1,.06],[263,39,1,.08],[246,34,.85,0],[218,46,.8,.14]],surf:[36,.12],tint:[44,.6],
+  extra:'.btn.primary,.calc-keys .k.eq,.mobile-nav button.active,.badge,.xp-chip,.calc-fab,.choice.selected .letter{color:#1d1405!important}.medal span{color:#1d1405;text-shadow:none}'},
+ sunset:{name:'Sunset',note:'Amber to magenta on deep plum',keys:[[277,328,.95,0],[263,314,.9,0],[246,292,.75,-.02],[218,30,1,.02]],surf:[298,.55],tint:[22,.75]},
+ ice:{name:'Ice',note:'Silver, white and pale blue on graphite',keys:[[277,212,.42,.06],[263,214,.4,.08],[246,216,.5,.02],[218,204,.75,.08]],surf:[222,.1],tint:[210,.3]},
+ rose:{name:'Rose',note:'The original purple-pink look, refreshed',keys:[[277,290,.95,0],[263,304,.9,.02],[246,272,.9,0],[218,326,.9,.02]],surf:[292,.6],tint:[312,.8]}};
+const THEME_KEYS=Object.keys(THEMES);
+function rgbHsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;
+ if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60}return [h,s,l]}
+function hslRgb(h,s,l){h=((h%360)+360)%360/360;if(!s){const v=Math.round(l*255);return [v,v,v]}
+ const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q,f=t=>{t=(t+1)%1;return t<1/6?p+(q-p)*6*t:t<1/2?q:t<2/3?p+(q-p)*(2/3-t)*6:p};return [f(h+1/3),f(h),f(h-1/3)].map(v=>Math.round(v*255))}
+// one color through a theme; null when it stays as it is
+function themeColor(r,g,b,T){const [h,s,l]=rgbHsl(r,g,b);if(s<.08)return null;
+ if(h>=333||h<15||(h>=15&&h<70)||(h>=80&&h<170))return null;                   // red = wrong, amber = warning, green = right: untouched
+ let nh,ns,nl=l;
+ if(l<.2){nh=T.surf[0];ns=Math.min(1,s*T.surf[1])}
+ else if(l>.72){nh=T.tint[0];ns=Math.min(1,s*T.tint[1])}
+ else{const d=k=>Math.min(Math.abs(h-k[0]),360-Math.abs(h-k[0]));const k=T.keys.slice().sort((a,b2)=>d(a)-d(b2))[0];nh=k[1];ns=Math.min(1,s*k[2]);nl=Math.max(0,Math.min(1,l+(k[3]||0)))}
+ return hslRgb(nh,ns,nl)}
+const hex2=v=>v.toString(16).padStart(2,'0');
+function themeValue(v,T){
+ v=v.replace(/(#|%23)([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![0-9a-zA-Z_-])/g,(m,pre,hx)=>{const f=hx.length===3?hx.split('').map(c=>c+c).join(''):hx;
+  const c=themeColor(parseInt(f.slice(0,2),16),parseInt(f.slice(2,4),16),parseInt(f.slice(4,6),16),T);return c?pre+c.map(hex2).join('')+f.slice(6):m});
+ return v.replace(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*[\d.]+\s*)?\)/g,(m,r,g,b,a)=>{const c=themeColor(+r,+g,+b,T);return c?`rgba(${c.join(',')}${a?','+a.replace(/[,\s]/g,''):',1'})`:m})}
+const COLOR_PROP=/^(--|color$|background|border|box-shadow|text-shadow|outline|fill$|stroke$|stop-color|accent-color|caret-color|filter$|-webkit-text-stroke|text-decoration-color|column-rule)/;
+function splitTop(s,sep){const out=[];let depth=0,q=null,start=0;for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c===q)q=null;continue}
+  if(c==='"'||c==="'")q=c;else if(c==='(')depth++;else if(c===')')depth--;else if(c===sep&&depth===0){out.push(s.slice(start,i));start=i+1}}out.push(s.slice(start));return out}
+function themeCSS(css,id){const T=THEMES[id];if(!T||!T.keys)return '';const P=`:root[data-theme="${id}"]`;
+ const scope=head=>splitTop(head,',').map(x=>{x=x.trim();return x.startsWith(':root')?P+x.slice(5):x.startsWith('html')?P+x.slice(4):`${P} ${x}`}).join(',');
+ const walk=str=>{let out='',i=0;while(i<str.length){const open=str.indexOf('{',i);if(open<0)break;const head=str.slice(i,open).trim();let depth=1,j=open+1;
+   while(j<str.length&&depth){if(str[j]==='{')depth++;else if(str[j]==='}')depth--;j++}const body=str.slice(open+1,j-1);i=j;
+   if(/^@(media|supports)/.test(head)){const inner=walk(body);if(inner)out+=`${head}{${inner}}`;continue}
+   if(head.startsWith('@')||!head)continue;
+   const decls=splitTop(body,';').map(d=>d.trim()).filter(d=>{const p=d.slice(0,d.indexOf(':')).trim();return d.includes(':')&&COLOR_PROP.test(p)}).map(d=>themeValue(d,T));
+   if(decls.length)out+=`${scope(head)}{${decls.join(';')}}`}
+  return out};
+ return walk(css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/@font-face\{[^}]*\}/g,''))+(T.extra?T.extra.replace(/(^|\})\s*([^{}]+)\{/g,(m,b,sel)=>`${b}${scope(sel)}{`):'')}
+let THEME_SRC=null;
+function applyTheme(id){if(!THEMES[id])id='midnight';const root=document.documentElement;
+ for(const el of document.querySelectorAll('style[data-theme-css]'))if(el.dataset.themeCss!==id)el.remove();
+ if(id==='midnight'){delete root.dataset.theme;return}
+ if(!document.querySelector(`style[data-theme-css="${id}"]`)){THEME_SRC=THEME_SRC??[...document.querySelectorAll('style:not([data-theme-css])')].map(s=>s.textContent).join('\n');
+  const st=document.createElement('style');st.dataset.themeCss=id;st.textContent=themeCSS(THEME_SRC,id);document.head.append(st)}
+ root.dataset.theme=id}
+// the four main colors and the card color of a theme, for its swatch
+function themeSwatch(id){const T=THEMES[id],base=['#9B20EA','#7A3CF5','#3F2FCB','#2F7BFF','#1b0c35'];return T.keys?base.map(c=>themeValue(c,T)):base}
+
 const KEY='safe-mlo-master-v1';
 const A5_BOOK=Object.freeze({width:148,height:210,ruleGap:6,lines:0});
 const DEFAULTS={
- schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',clock:'on',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
+ schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',clock:'on',theme:'midnight',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},game:{bonus:0,badges:{}},seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='6.0';
+const APP_VERSION='6.1';
 const CALC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="5.8" width="8" height="3.6" rx="1"/><path d="M8.6 13h.01M12 13h.01M15.4 13h.01M8.6 16.6h.01M12 16.6h.01M15.4 16.6h.01" stroke-width="2.6"/></svg>';   // 5.4: the calculator button (calc.js)
 const WHATS_NEW=[
+ 'Themes: in Settings, pick Midnight (the default), Ocean, Black Gold, Sunset, Ice or Rose. The whole app changes color; green still means right and red still means wrong.',
  'New logo: SAFE over MLO, glowing purple to blue. It is in the menu and the browser tab now; to see it on your home screen, save a backup in Settings first, then remove the app and add it again.',
  'Game feel: XP for every answer, 10 ranks from Rookie to MLO Master, a daily streak (20 answers a day), and 19 badges. Your player card is on Home; the trophy case is on Stats.',
  'Difficulty levels: Easy, Standard, Hard, Veteran, Professional, Insanity and YOLO (25 in a row; one miss and you start over with new questions). The clock on the timed levels is optional.',
@@ -4091,7 +4158,10 @@ function renderNotebook(){const v=state.notesView,notes=filteredNotes().slice().
   :`<div class="empty"><h3>${v.filter==='guess'?'No guesses marked yet':v.filter==='flag'?'No flagged questions yet':state.notes.length?'Nothing in this list':'No notes yet'}</h3><p>${v.filter==='guess'?'Tap ? I guessed on any question you were not sure of, before or after you answer, and its note lands here.':v.filter==='flag'?'Tap ⚐ Flag on any question, in practice or on an exam, and its note lands here first.':state.notes.length?'Switch the filter to see the rest.':'Answer a practice question and its note lands here.'}</p></div>`}</section>
  ${state.notes.length?`<section class="section"><div class="panel"><h3>Start fresh</h3><p class="muted small" style="margin:8px 0 12px">Clears all ${state.notes.length} notes, flagged and written ones too. Your scores, readiness and progress stay. New answers start a new list.</p>${button('reset-notes','Reset notes','danger sm')}</div></section>`:''}`;
 }
-function renderSettings(){return `${sectionTitle('Settings & Backup','Your work is stored locally on this device and browser. Export backups regularly.')}
+function themePanel(){const cur=THEMES[state.settings.theme]?state.settings.theme:'midnight';
+ return `<div class="panel themes"><div class="section-head"><h2>Theme</h2><span class="chip">${HTML(THEMES[cur].name)}</span></div><p class="muted small" style="margin:-4px 0 14px">Changes the colors of the whole app, on this phone. Green still means right and red still means wrong in every theme.</p>
+ <div class="theme-grid">${THEME_KEYS.map(k=>{const sw=themeSwatch(k);return `<button type="button" class="theme-card${k===cur?' on':''}" data-theme-pick="${k}" aria-pressed="${k===cur}" style="--s1:${sw[0]};--s2:${sw[1]};--s3:${sw[2]};--s4:${sw[3]};--sb:${sw[4]}"><span class="tc-swatch"></span><b>${HTML(THEMES[k].name)}${k==='midnight'?' <span class="tc-def">DEFAULT</span>':''}</b><span class="tc-note">${HTML(THEMES[k].note)}</span>${k===cur?'<span class="tc-check" aria-hidden="true">✓</span>':''}</button>`}).join('')}</div></div>`}
+function renderSettings(){return `${sectionTitle('Settings & Backup','Your work is stored locally on this device and browser. Export backups regularly.')}${themePanel()}
  <div class="panel"><h3>Exam date and schedule</h3><p class="muted small" style="margin:10px 0 14px">Your countdown, daily goal, ready check (one week before) and the weekly full-length exams follow these. Days off have no goal; the other days carry it.</p><div class="field-grid"><label class="field">First day of your window<input type="date" data-plan="exam" value="${HTML(state.plan.exam)}"></label><label class="field">Last day of your window<input type="date" data-plan="last" value="${HTML(state.plan.last)}"></label>
  <label class="field">Full-length exam day<select data-plan="fullDay">${DAYS.map((d,i)=>`<option value="${i}" ${+state.plan.fullDay===i?'selected':''}>${d}</option>`).join('')}</select></label><label class="field">Add a day off (travel, no study)<input type="date" data-off-add></label></div>
  <div class="sched">${(state.plan.off||[]).slice().sort().map(d=>`<span class="chip">${HTML(fmtDay(parseDay(d)))} <button class="linkish" data-off-del="${HTML(d)}" aria-label="Remove ${HTML(d)}">✕</button></span>`).join('')||'<span class="small muted">No days off set.</span>'}</div></div>
@@ -4195,13 +4265,13 @@ function achievements(){const g=gameOf();return `<section class="section"><div c
 // 5.6: the readiness ring and the countdown on Home
 function heroStats(){const R=readiness(mastery(state.attempts),state.sessions),P=planInfo(),none=R.status==='collecting',pct=none?0:Math.max(0,Math.min(100,R.score)),C=326.73;
  const day=P.exam instanceof Date?P.exam.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
- return `<div class="hero-stats"><div class="ring" role="img" aria-label="Readiness ${none?'not measured yet':pct+' percent'}"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D08CFF"/><stop offset=".5" stop-color="#7A3CF5"/><stop offset="1" stop-color="#2F7BFF"/></linearGradient></defs><circle class="ring-bg" cx="60" cy="60" r="52"/>${pct?`<circle class="ring-fg" cx="60" cy="60" r="52" stroke="url(#ringGrad)" stroke-dasharray="${C}" style="--off:${(C*(1-pct/100)).toFixed(1)}"/>`:''}</svg><div class="ring-in"><b>${none?'—':pct}${none?'':'<small>%</small>'}</b><span>READY</span></div></div>
+ return `<div class="hero-stats"><div class="ring" role="img" aria-label="Readiness ${none?'not measured yet':pct+' percent'}"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ring1)"/><stop offset=".5" style="stop-color:var(--ring2)"/><stop offset="1" style="stop-color:var(--ring3)"/></linearGradient></defs><circle class="ring-bg" cx="60" cy="60" r="52"/>${pct?`<circle class="ring-fg" cx="60" cy="60" r="52" stroke="url(#ringGrad)" stroke-dasharray="${C}" style="--off:${(C*(1-pct/100)).toFixed(1)}"/>`:''}</svg><div class="ring-in"><b>${none?'—':pct}${none?'':'<small>%</small>'}</b><span>READY</span></div></div>
  <div class="hero-count"><b>${Math.max(0,P.dExam|0)}</b><span>days to test day</span><em>${HTML(day)}</em></div></div>`}
 let JUST=null;   // the question you just answered: its choices pop (right) or shake (wrong) once
 let ENTER=false,LAST_ROUTE=null,LAST_QK=null;
 // 5.8: confetti for a passed set (75%+, 10 or more questions) and for winning YOLO
 function confetti(){try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return}catch{}document.querySelector('.confetti')?.remove();
- const C=['#9B20EA','#7A3CF5','#3F2FCB','#2F7BFF','#C9B8FF','#FFFFFF','#3EE0A1'],box=document.createElement('div');box.className='confetti';box.setAttribute('aria-hidden','true');
+ const cs=getComputedStyle(document.documentElement),C=[...['--purple','--violet','--indigo','--blue','--lav'].map(v=>cs.getPropertyValue(v).trim()||'#9B20EA'),'#FFFFFF','#3EE0A1'],box=document.createElement('div');box.className='confetti';box.setAttribute('aria-hidden','true');
  box.innerHTML=Array.from({length:48},(_,i)=>`<i style="--x:${(Math.random()*100).toFixed(1)}vw;--d:${(Math.random()*.5).toFixed(2)}s;--t:${(1.7+Math.random()*1.3).toFixed(2)}s;--r:${Math.round(Math.random()*900-450)}deg;--s:${(.6+Math.random()*.8).toFixed(2)};--w:${Math.round(Math.random()*80-40)}px;background:${C[i%C.length]}"></i>`).join('');
  document.body.append(box);setTimeout(()=>box.remove(),3800)}
 function exposeQuestions(questions){const time=new Date().toISOString();for(const q of questions){if(!state.exposures[q.family])state.exposures[q.family]={firstSeenAt:time,seenIds:[q.id],exposureCount:1,firstCorrect:null,firstAnsweredAt:null,lastAnsweredAt:null,lapses:0};else{const e=state.exposures[q.family];e.exposureCount=(e.exposureCount||0)+1;e.seenIds=[...new Set([...(e.seenIds||[]),q.id])]}}}
@@ -4277,6 +4347,7 @@ document.addEventListener('click',e=>{
    state.reports.push({qid,kind:k,note:note.trim().slice(0,400),at:new Date().toISOString()});state.reports=state.reports.slice(-300);
    if(k==='confusing'&&q){(state.exposures[q.family]=state.exposures[q.family]||{seenIds:[qid],exposureCount:1,lapses:0}).confusing=true}}
   persist();render();if(had<0)toast(k==='confusing'?'Saved. This rule comes back with the rule first.':'Saved for your report to Claude.');return}
+ const tp=e.target.closest('[data-theme-pick]');if(tp){state.settings.theme=THEMES[tp.dataset.themePick]?tp.dataset.themePick:'midnight';applyTheme(state.settings.theme);persist();render();toast(`${THEMES[state.settings.theme].name} theme on.`);return}
  const ex=e.target.closest('[data-explain]');if(ex){state.settings.explain=EXPLAIN[ex.dataset.explain]?ex.dataset.explain:'simple';persist();render();toast(`${EXPLAIN[explainMode()]} explanations on.`);return}
  const od=e.target.closest('[data-off-del]');if(od){state.plan.off=(state.plan.off||[]).filter(x=>x!==od.dataset.offDel);persist();render();return}
  const mem=e.target.closest('[data-memory]');if(mem){state.settings.memory=mem.dataset.memory==='off'?'off':'on';persist();render();return}
@@ -4322,7 +4393,7 @@ document.addEventListener('click',e=>{
  case 'download-report':downloadFile(`mlo-master-report-${new Date().toISOString().slice(0,10)}.txt`,buildReport(),'text/plain');break;
  case 'reload-app':persist();location.reload();break;
  case 'export-data':downloadFile(`safe-mlo-master-backup-${new Date().toISOString().slice(0,10)}.json`,exportData(state),'application/json');break;
- case 'clear-data':if(confirm('Permanently erase ALL progress and saved notebook entries in this browser? Export a backup first.')){state=loadState({getItem(){return null}});persist();render();toast('Local progress reset.')}break;
+ case 'clear-data':if(confirm('Permanently erase ALL progress and saved notebook entries in this browser? Export a backup first.')){state=loadState({getItem(){return null}});applyTheme(state.settings.theme);persist();render();toast('Local progress reset.')}break;
  }
 });
 document.addEventListener('change',async e=>{
@@ -4332,17 +4403,17 @@ document.addEventListener('change',async e=>{
  const pl=e.target.closest('[data-plan]');if(pl&&pl.dataset.plan==='fullDay'){const v=+pl.value;if(v>=0&&v<=6){state.plan.fullDay=v;persist();render();toast(`Full-length exams on ${DAYS[v]}s.`)}return}
  if(pl){const v=pl.value;if(parseDay(v)){state.plan[pl.dataset.plan]=v;if(pl.dataset.plan==='exam'&&parseDay(state.plan.last)<parseDay(v))state.plan.last=v;persist();render();toast('Exam date saved.')}return}
  const notebook=e.target.closest('[data-notebook]');if(notebook){notebookConfig(notebook.dataset.notebook,notebook.value);return}
- if(e.target.id==='import-file'){const file=e.target.files?.[0];if(!file)return;try{const payload=JSON.parse(await file.text());const restored=validateImport(payload);if(!confirm('Replace ALL local progress with this backup?'))return;localStorage.setItem(KEY,JSON.stringify(restored));state=loadState();state.route='dashboard';gameSync();persist();render();toast('Backup imported.')}catch(error){toast(error.message||'Could not import backup.',true)}}
+ if(e.target.id==='import-file'){const file=e.target.files?.[0];if(!file)return;try{const payload=JSON.parse(await file.text());const restored=validateImport(payload);if(!confirm('Replace ALL local progress with this backup?'))return;localStorage.setItem(KEY,JSON.stringify(restored));state=loadState();state.route='dashboard';applyTheme(state.settings.theme);gameSync();persist();render();toast('Backup imported.')}catch(error){toast(error.message||'Could not import backup.',true)}}
 });
 document.addEventListener('input',e=>{const t=e.target.closest('[data-mine]');if(!t)return;const n=state.notes.find(x=>x.id===t.dataset.mine);if(n){n.mine=t.value.slice(0,1000);clearTimeout(mineTimer);
  mineTimer=setTimeout(()=>{persist();const c=document.querySelector(`.a5wrap[data-note="${n.id}"]`);if(c){c.querySelector('.a5in').dataset.tier='1';fitPages(c.parentElement)}},400)}});
 window.addEventListener('hashchange',()=>{const hash=window.location.hash.slice(1);if(navs.some(([r])=>r===hash)){state.route=hash;render()}});
 window.addEventListener('resize',()=>{if(state.route==='notebook')fitSheets()});
 if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=location.hash.slice(1);
-gameSync();render();persist();        // 5.9: badges already earned are filed quietly. Saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
+applyTheme(state.settings.theme);gameSync();render();persist();        // 6.1: your theme first, then 5.9: badges already earned are filed quietly. Saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261021184300-5caf6e40',OPENED=Date.now();
+const BUILD='20261021185645-fa8f6fe0',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
@@ -4360,7 +4431,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
  maybeUpdate();                                                         // it may have switched over before this page finished loading
 }
 
-if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,releaseSeen,xpTotal,rankOf,streakInfo,gameSync,BADGES,render:()=>render()};
+if(location.protocol==='file:')window.__m={QUESTIONS,FAMILIES,noteParts,noteText,noteHTML,selectQuestions,validateQuestionBank,makePerms,state:()=>state,setState:s=>{state=s},loadState,notebookPages,quotas,mastery,readiness,tiltedQuotas,learnOf,diffWords,twistText,pagePaper,planInfo,paperSlot,fullLines,speller,clueOf,readAs,wrongNote,handCpl,fitHandwriting,buildReport,APP_VERSION,isNew,trapList,goSignals,releaseSeen,themeCSS,applyTheme,themeSwatch,THEMES,xpTotal,rankOf,streakInfo,gameSync,BADGES,render:()=>render()};
 
 // 5.4: a basic calculator, like the one the test center gives you (no personal calculators are allowed there).
 // It works left to right like a handheld: 2 + 3 × 4 = 20. % and memory work the handheld way too. It lives outside the app's
