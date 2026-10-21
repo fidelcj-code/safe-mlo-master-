@@ -464,8 +464,8 @@ button.chip.qclock{cursor:pointer;font:inherit;font-size:.7rem;font-weight:750}
 .theme-card:hover{transform:translateY(-2px)}
 .theme-card b{font-family:var(--sans);font-size:.92rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tc-swatch{height:48px;border-radius:12px;background:linear-gradient(118deg,var(--s1) 0%,var(--s2) 34%,var(--s3) 68%,var(--s4) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 18px rgba(0,0,0,.45)}
-.tc-note{font-size:.72rem;color:rgba(255,255,255,.66);line-height:1.35}
-.tc-def{font-size:.55rem;letter-spacing:.12em;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff}
+.tc-note{font-size:.72rem;color:inherit;opacity:.68;line-height:1.35}
+.tc-def{font-size:.55rem;letter-spacing:.12em;padding:2px 6px;border-radius:999px;background:rgba(127,127,127,.22);color:inherit}
 .theme-card.on{border-color:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(255,255,255,.25),0 10px 30px rgba(0,0,0,.5)}
 .tc-check{position:absolute;top:17px;right:17px;width:24px;height:24px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-weight:900;font-size:.8rem;box-shadow:0 2px 10px rgba(0,0,0,.4)}
 @media(max-width:400px){.theme-grid{grid-template-columns:1fr 1fr}}
@@ -3701,19 +3701,23 @@ const THEMES={
   extra:'.btn.primary,.calc-keys .k.eq,.mobile-nav button.active,.badge,.xp-chip,.calc-fab,.choice.selected .letter{color:#1d1405!important}.medal span{color:#1d1405;text-shadow:none}'},
  sunset:{name:'Sunset',note:'Amber to magenta on deep plum',keys:[[277,328,.95,0],[263,314,.9,0],[246,292,.75,-.02],[218,30,1,.02]],surf:[298,.55],tint:[22,.75]},
  ice:{name:'Ice',note:'Silver, white and pale blue on graphite',keys:[[277,212,.42,.06],[263,214,.4,.08],[246,216,.5,.02],[218,204,.75,.08]],surf:[222,.1],tint:[210,.3]},
- rose:{name:'Rose',note:'The original purple-pink look, refreshed',keys:[[277,290,.95,0],[263,304,.9,.02],[246,272,.9,0],[218,326,.9,.02]],surf:[292,.6],tint:[312,.8]}};
+ rose:{name:'Rose',note:'The original purple-pink look, refreshed',keys:[[277,290,.95,0],[263,304,.9,.02],[246,272,.9,0],[218,326,.9,.02]],surf:[292,.6],tint:[312,.8]},
+ cmyk:{name:'CMYK',note:'Cyan, magenta and yellow on true black, like print ink',keys:[[277,194,1,.02],[263,300,.95,0],[246,322,1,0],[218,54,1,.04]],surf:[200,.08],tint:[188,.85]},
+ test:{name:'Test Center',note:'Plain white screen like test day: black text, simple buttons, no glow',light:true,keys:[[277,214,.55,0],[263,214,.5,0],[246,216,.55,0],[218,210,.6,0]],surf:[214,.25],tint:[214,.4],
+  extra:':root{--sans:Arial,Helvetica,sans-serif;--body:Arial,Helvetica,sans-serif}body::before,body::after,.hero::before,.hero::after,.confetti,.btn.primary::after{display:none!important}*,*::before,*::after{box-shadow:none!important;text-shadow:none!important;animation:none!important;transition:none!important}.ring-fg,.medal,.xp-pop,.eyebrow,.choice,.notice{filter:none!important}h1,h2,h3,.question-body,.ring-in b,.hero-count b{letter-spacing:0!important}.hero{background:#fff!important;border:1px solid #b9c3d1!important}.stat,.panel,.mode-card,.qcard,.category-card,.feature-card{background:#fff!important;border:1px solid #c8d0dc!important;border-radius:8px!important}.mode-card.active{background:#e8eef8!important;border:2px solid #1f4e8c!important}.btn,.choice,.field select,.field input{border-radius:6px!important}.btn.primary,.btn.light,.calc-keys .k.eq,.calc-fab,.mobile-nav button.active,.medal,.badge,.xp-chip{background:#1f4e8c!important;color:#fff!important;border-color:#1f4e8c!important}.medal span,.choice.incorrect .letter,.choice.selected .letter,.notice.verdict::before{color:#fff!important}.choice.selected .letter{background:#1f4e8c!important}.choice.selected{background:#e8eef8!important;border-color:#1f4e8c!important}.mobile-nav{background:#f1f3f6!important;border-color:#c8d0dc!important}.top-pill,.calc-top{background:#fff!important;border:1px solid #1f4e8c!important;color:#1f4e8c!important}'}};
 const THEME_KEYS=Object.keys(THEMES);
 function rgbHsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;
  if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60}return [h,s,l]}
 function hslRgb(h,s,l){h=((h%360)+360)%360/360;if(!s){const v=Math.round(l*255);return [v,v,v]}
  const q=l<.5?l*(1+s):l+s-l*s,p=2*l-q,f=t=>{t=(t+1)%1;return t<1/6?p+(q-p)*6*t:t<1/2?q:t<2/3?p+(q-p)*(2/3-t)*6:p};return [f(h+1/3),f(h),f(h-1/3)].map(v=>Math.round(v*255))}
 // one color through a theme; null when it stays as it is
-function themeColor(r,g,b,T){const [h,s,l]=rgbHsl(r,g,b);if(s<.08)return null;
- if(h>=333||h<15||(h>=15&&h<70)||(h>=80&&h<170))return null;                   // red = wrong, amber = warning, green = right: untouched
- let nh,ns,nl=l;
+function themeColor(r,g,b,T){const [h,s,l]=rgbHsl(r,g,b),L=T.light?1-l:l;     // a light theme turns lightness over: black ↔ white, dark surfaces become paper
+ if(s<.08)return T.light?hslRgb(h,s,L):null;
+ if(h>=333||h<15||(h>=15&&h<70)||(h>=80&&h<170))return T.light?hslRgb(h,s,L):null;   // red = wrong, amber = warning, green = right: same hue always
+ let nh,ns,nl=L;
  if(l<.2){nh=T.surf[0];ns=Math.min(1,s*T.surf[1])}
  else if(l>.72){nh=T.tint[0];ns=Math.min(1,s*T.tint[1])}
- else{const d=k=>Math.min(Math.abs(h-k[0]),360-Math.abs(h-k[0]));const k=T.keys.slice().sort((a,b2)=>d(a)-d(b2))[0];nh=k[1];ns=Math.min(1,s*k[2]);nl=Math.max(0,Math.min(1,l+(k[3]||0)))}
+ else{const d=k=>Math.min(Math.abs(h-k[0]),360-Math.abs(h-k[0]));const k=T.keys.slice().sort((a,b2)=>d(a)-d(b2))[0];nh=k[1];ns=Math.min(1,s*k[2]);nl=Math.max(0,Math.min(1,L+(k[3]||0)))}
  return hslRgb(nh,ns,nl)}
 const hex2=v=>v.toString(16).padStart(2,'0');
 function themeValue(v,T){
@@ -3728,7 +3732,7 @@ function themeCSS(css,id){const T=THEMES[id];if(!T||!T.keys)return '';const P=`:
  const walk=str=>{let out='',i=0;while(i<str.length){const open=str.indexOf('{',i);if(open<0)break;const head=str.slice(i,open).trim();let depth=1,j=open+1;
    while(j<str.length&&depth){if(str[j]==='{')depth++;else if(str[j]==='}')depth--;j++}const body=str.slice(open+1,j-1);i=j;
    if(/^@(media|supports)/.test(head)){const inner=walk(body);if(inner)out+=`${head}{${inner}}`;continue}
-   if(head.startsWith('@')||!head)continue;
+   if(head.startsWith('@')||!head||/theme-card|\.tc-/.test(head)||(T.light&&/sheet|line-label/.test(head)))continue;   // the theme picker shows every theme as itself; printed pages stay paper
    const decls=splitTop(body,';').map(d=>d.trim()).filter(d=>{const p=d.slice(0,d.indexOf(':')).trim();return d.includes(':')&&COLOR_PROP.test(p)}).map(d=>themeValue(d,T));
    if(decls.length)out+=`${scope(head)}{${decls.join(';')}}`}
   return out};
@@ -3749,9 +3753,10 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',clock:'on',theme:'midnight',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},game:{bonus:0,badges:{}},seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='6.1';
+const APP_VERSION='6.2';
 const CALC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="5.8" width="8" height="3.6" rx="1"/><path d="M8.6 13h.01M12 13h.01M15.4 13h.01M8.6 16.6h.01M12 16.6h.01M15.4 16.6h.01" stroke-width="2.6"/></svg>';   // 5.4: the calculator button (calc.js)
 const WHATS_NEW=[
+ 'Two new themes: CMYK (cyan, magenta and yellow on black) and Test Center (a plain white screen like test day, to practice the way the real exam looks).',
  'Themes: in Settings, pick Midnight (the default), Ocean, Black Gold, Sunset, Ice or Rose. The whole app changes color; green still means right and red still means wrong.',
  'New logo: SAFE over MLO, glowing purple to blue. It is in the menu and the browser tab now; to see it on your home screen, save a backup in Settings first, then remove the app and add it again.',
  'Game feel: XP for every answer, 10 ranks from Rookie to MLO Master, a daily streak (20 answers a day), and 19 badges. Your player card is on Home; the trophy case is on Stats.',
@@ -4160,7 +4165,7 @@ function renderNotebook(){const v=state.notesView,notes=filteredNotes().slice().
 }
 function themePanel(){const cur=THEMES[state.settings.theme]?state.settings.theme:'midnight';
  return `<div class="panel themes"><div class="section-head"><h2>Theme</h2><span class="chip">${HTML(THEMES[cur].name)}</span></div><p class="muted small" style="margin:-4px 0 14px">Changes the colors of the whole app, on this phone. Green still means right and red still means wrong in every theme.</p>
- <div class="theme-grid">${THEME_KEYS.map(k=>{const sw=themeSwatch(k);return `<button type="button" class="theme-card${k===cur?' on':''}" data-theme-pick="${k}" aria-pressed="${k===cur}" style="--s1:${sw[0]};--s2:${sw[1]};--s3:${sw[2]};--s4:${sw[3]};--sb:${sw[4]}"><span class="tc-swatch"></span><b>${HTML(THEMES[k].name)}${k==='midnight'?' <span class="tc-def">DEFAULT</span>':''}</b><span class="tc-note">${HTML(THEMES[k].note)}</span>${k===cur?'<span class="tc-check" aria-hidden="true">✓</span>':''}</button>`}).join('')}</div></div>`}
+ <div class="theme-grid">${THEME_KEYS.map(k=>{const sw=themeSwatch(k);return `<button type="button" class="theme-card${k===cur?' on':''}" data-theme-pick="${k}" aria-pressed="${k===cur}" style="--s1:${sw[0]};--s2:${sw[1]};--s3:${sw[2]};--s4:${sw[3]};--sb:${sw[4]};color:${THEMES[k].light?'#111':'#fff'}"><span class="tc-swatch"></span><b>${HTML(THEMES[k].name)}${k==='midnight'?' <span class="tc-def">DEFAULT</span>':''}</b><span class="tc-note">${HTML(THEMES[k].note)}</span>${k===cur?'<span class="tc-check" aria-hidden="true">✓</span>':''}</button>`}).join('')}</div></div>`}
 function renderSettings(){return `${sectionTitle('Settings & Backup','Your work is stored locally on this device and browser. Export backups regularly.')}${themePanel()}
  <div class="panel"><h3>Exam date and schedule</h3><p class="muted small" style="margin:10px 0 14px">Your countdown, daily goal, ready check (one week before) and the weekly full-length exams follow these. Days off have no goal; the other days carry it.</p><div class="field-grid"><label class="field">First day of your window<input type="date" data-plan="exam" value="${HTML(state.plan.exam)}"></label><label class="field">Last day of your window<input type="date" data-plan="last" value="${HTML(state.plan.last)}"></label>
  <label class="field">Full-length exam day<select data-plan="fullDay">${DAYS.map((d,i)=>`<option value="${i}" ${+state.plan.fullDay===i?'selected':''}>${d}</option>`).join('')}</select></label><label class="field">Add a day off (travel, no study)<input type="date" data-off-add></label></div>
@@ -4413,7 +4418,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 applyTheme(state.settings.theme);gameSync();render();persist();        // 6.1: your theme first, then 5.9: badges already earned are filed quietly. Saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261021185645-fa8f6fe0',OPENED=Date.now();
+const BUILD='20261021190915-19ad9085',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
