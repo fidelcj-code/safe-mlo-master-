@@ -469,6 +469,9 @@ button.chip.qclock{cursor:pointer;font:inherit;font-size:.7rem;font-weight:750}
 .theme-card.on{border-color:rgba(255,255,255,.85);box-shadow:0 0 0 2px rgba(255,255,255,.25),0 10px 30px rgba(0,0,0,.5)}
 .tc-check{position:absolute;top:17px;right:17px;width:24px;height:24px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;font-weight:900;font-size:.8rem;box-shadow:0 2px 10px rgba(0,0,0,.4)}
 @media(max-width:400px){.theme-grid{grid-template-columns:1fr 1fr}}
+/* 6.3: Unlimited practice */
+.unl-bar{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 4px}
+.unl-bar .chip.good{border-color:rgba(62,224,161,.6);color:#c9f7e6}.unl-bar .chip.low{border-color:rgba(255,84,112,.55);color:#ffd3da}
 </style>
 </head>
 <body>
@@ -3291,7 +3294,7 @@ function classify(exposures,attempts,s,rng=Math.random,M=mastery(attempts)){
   if(!e){kind='fresh';q=pick(ok)}
   else if((r&&r.known===false)||e.confusing){if(unseen.length){kind='review';q=pick(unseen)}else{kind='repeat';q=pick(ok)}}    // missed, or you marked it confusing; no new wording left: only Review Missed repeats it
   else if(unseen.length){kind=r&&r.known&&now-r.lastAt>=SPACING[Math.min(r.streak,3)]*DAY?'due':'again';q=pick(unseen)}
-  else if(s.difficulty==='yolo'){kind='repeat';q=pick(ok)}     // YOLO: a rule you know, asked again, only once nothing new is left
+  else if(s.difficulty==='yolo'||s.unlimited){kind='repeat';q=pick(ok)}     // YOLO and Unlimited: a rule you know, asked again, only once nothing new is left
   else continue;
   counts[kind]++;(pools[kind][f.category]=pools[kind][f.category]||[]).push(q);
  }
@@ -3343,7 +3346,7 @@ function selectQuestions(bank,exposures={},attempts=[],settings={},rng=Math.rand
   if(s.mode==='learn'){got=take('review',cat,Math.round(want*.3));got+=take('fresh',cat,want-got);got+=take('due',cat,want-got);return got+take('again',cat,want-got)}
   // adaptive (and exams): about 1 in 5 missed rules, about 1 in 7 spaced checks, the rest fresh
   got+=take('review',cat,Math.round(want*.2));got+=take('due',cat,Math.round(want*.15));got+=take('fresh',cat,want-got);
-  got+=take('due',cat,want-got);got+=take('again',cat,want-got);got+=take('review',cat,want-got);return got+(s.difficulty==='yolo'?take('repeat',cat,want-got):0)}
+  got+=take('due',cat,want-got);got+=take('again',cat,want-got);got+=take('review',cat,want-got);return got+(s.difficulty==='yolo'||s.unlimited?take('repeat',cat,want-got):0)}
  for(const cat of Object.keys(quota))fill(cat,quota[cat]);
  if(chosen.length<requested)for(const cat of (s.category&&s.category!=='ALL'?[s.category]:CAT_CODES))fill(cat,requested-chosen.length);
  // Normal math: top up to the minimum by swapping a calculation in for a non-math question of the same area, so the mix stays exact
@@ -3753,9 +3756,10 @@ const DEFAULTS={
  schema:2,route:'dashboard',settings:{mode:'adaptive',difficulty:'standard',clock:'on',theme:'midnight',math:'normal',statements:'normal',explain:'simple',category:'ALL',code:'',set:'all',count:10,examCount:120,memory:'on'},
  notebook:{...A5_BOOK},page:{rows:31,hand:'m',cpl:null,samples:[]},plan:{exam:'2026-11-19',last:'2026-11-21',fullDay:0,off:['2026-10-17']},notesView:{filter:'todo',pages:10,list:20},exposures:{},attempts:[],sessions:[],active:null,notes:[],reports:[],yolo:{best:0,runs:0,wins:0},game:{bonus:0,badges:{}},seenVersion:'',lastResult:null,onboarded:true
 };
-const APP_VERSION='6.2';
+const APP_VERSION='6.3';
 const CALC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="5" y="2.8" width="14" height="18.4" rx="3"/><rect x="8" y="5.8" width="8" height="3.6" rx="1"/><path d="M8.6 13h.01M12 13h.01M15.4 13h.01M8.6 16.6h.01M12 16.6h.01M15.4 16.6h.01" stroke-width="2.6"/></svg>';   // 5.4: the calculator button (calc.js)
 const WHATS_NEW=[
+ 'Number of questions now has Unlimited (Practice): questions keep coming until you tap Finish, with a running count of how many you got right.',
  'Two new themes: CMYK (cyan, magenta and yellow on black) and Test Center (a plain white screen like test day, to practice the way the real exam looks).',
  'Themes: in Settings, pick Midnight (the default), Ocean, Black Gold, Sunset, Ice or Rose. The whole app changes color; green still means right and red still means wrong.',
  'New logo: SAFE over MLO, glowing purple to blue. It is in the menu and the browser tab now; to see it on your home screen, save a backup in Settings first, then remove the app and add it again.',
@@ -3982,7 +3986,7 @@ function renderDashboard(){
 function modeCards(type){const learn=type!=='exam';return `<div class="mode-grid${learn?' four':''}" role="group" aria-label="Question selection mode">${[...(learn?[['learn','✎','Learn','Read the rule and why it is right, then answer a question on it. Weakest topics first.']]:[]),['adaptive','◈','Adaptive','Leans toward your weak areas and topics, brings misses back in a new wording, and rechecks what you got right after 3, 7 and 21 days.'],['fresh','✦','Fresh Only','Rules you have never seen, then new wordings of ones you have. Never the same question twice.'],['review','↺','Review Missed','Rules you missed or were unsure of, asked a new way. If a rule has no new wording left, you see the same question again.']].map(([key,emoji,label,desc])=>`<button class="mode-card ${state.settings.mode===key?'active':''}" data-mode="${key}" aria-pressed="${(state.settings.mode===key)}"><span class="mode-emoji">${emoji}</span><strong>${label} ${key==='adaptive'?'<span class="badge">DEFAULT</span>':''}</strong><span class="mode-description">${desc}</span></button>`).join('')}</div>`}
 function renderSetup(type){const s={...state.settings},MS=mastery(state.attempts);if(type==='exam'&&s.mode==='learn')s.mode='adaptive';const counts=availableCounts(QUESTIONS,state.exposures,state.attempts,s);const previous=state.sessions.filter(x=>x.type===type).slice(-3).reverse();
  const isExam=type==='exam',countKey=isExam?'examCount':'count',cur=Number(s[countKey]),dif=isExam&&s.difficulty==='yolo'?'hard':s.difficulty;
- const opts=isExam?[[10,'10 questions · 16 min'],[20,'20 questions · 32 min'],[30,'30 questions · 48 min'],[60,'60 questions · 95 min'],[120,'120 questions · 190 min · full length']]:[[5,'5 questions'],[10,'10 questions'],[15,'15 questions'],[20,'20 questions'],[25,'25 questions'],[30,'30 questions']];
+ const opts=isExam?[[10,'10 questions · 16 min'],[20,'20 questions · 32 min'],[30,'30 questions · 48 min'],[60,'60 questions · 95 min'],[120,'120 questions · 190 min · full length']]:[[5,'5 questions'],[10,'10 questions'],[15,'15 questions'],[20,'20 questions'],[25,'25 questions'],[30,'30 questions'],[0,'Unlimited']];
  const other=state.active&&state.active.type!==type?state.active:null;
  return `${sectionTitle(isExam?'Simulated Exams':'Practice Questions',isExam?'Timed exams shaped like the real one, reviewed question by question after you submit.':'Build true mastery with fresh challenges and intentional review.')}
  ${other?`<div class="notice warn" style="margin-bottom:14px">You have an unfinished ${other.type==='exam'?'exam':'practice set'} (${Object.keys(other.answers).length} of ${other.questions.length} answered). Starting a new one here replaces it. <div class="actions" style="margin-top:10px"><button class="btn sm primary" data-route="${other.type}">Resume it →</button></div></div>`:''}
@@ -4015,13 +4019,13 @@ function renderSession(){const s=currentSession();if(!s)return renderSetup(state
  const qk=s.id+':'+s.cursor+':'+q.id,qEnter=qk!==LAST_QK;LAST_QK=qk;
  if(s.clock&&!revealed){s.qStart=s.qStart||{};if(!s.qStart[q.id])s.qStart[q.id]=Date.now()}
  const y=s.yolo,yEnd=y&&revealed&&choice===q.correct&&(y.won||s.cursor>=s.questions.length-1),timed=!!s.timedOut?.[q.id],lvl=s.difficulty&&s.difficulty!=='standard'&&s.difficulty!=='mixed'&&!y?` · ${(LEVEL_NAME[s.difficulty]||'').toUpperCase()}`:'';
- return `<div class="question-head"><div><span class="eyebrow${y?' yolo-eyebrow':''}">${y?`⚡ YOLO · ${y.streak} IN A ROW · BEST ${Math.max(y.best,state.yolo?.best||0)}`:(isExam?(s.questions.length===120?'FULL-LENGTH EXAM':'TIMED MINI-EXAM'):s.learn?'LEARN, THEN CHECK':'FOCUSED PRACTICE')+lvl}</span><h2 style="margin-top:9px">Question ${s.cursor+1} <span class="muted">of ${s.questions.length}</span></h2></div><div class="actions"><span class="chip">${HTML(q.category)} · ${HTML(q.topic)}</span>${isExam?'<span class="chip pink" id="timer" role="timer">⏱ --:--</span>':''}${s.clock&&!revealed?`<button type="button" class="chip qclock${clockLeft(s,q.id)<=10?' low':''}" id="qclock" role="timer" data-act="clock-off" aria-label="Time left. Tap to turn the clock off for this set">${clockText(clockLeft(s,q.id))}</button>`:''}</div></div>
- <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(answered/s.questions.length*100)}"><div class="progress-fill" style="width:${Math.round(answered/s.questions.length*100)}%"></div></div>
+ return `<div class="question-head"><div><span class="eyebrow${y?' yolo-eyebrow':''}">${y?`⚡ YOLO · ${y.streak} IN A ROW · BEST ${Math.max(y.best,state.yolo?.best||0)}`:(isExam?(s.questions.length===120?'FULL-LENGTH EXAM':'TIMED MINI-EXAM'):s.learn?'LEARN, THEN CHECK':'FOCUSED PRACTICE')+lvl}</span><h2 style="margin-top:9px">Question ${s.cursor+1} <span class="muted">${s.unlimited?'· unlimited':'of '+s.questions.length}</span></h2></div><div class="actions"><span class="chip">${HTML(q.category)} · ${HTML(q.topic)}</span>${isExam?'<span class="chip pink" id="timer" role="timer">⏱ --:--</span>':''}${s.clock&&!revealed?`<button type="button" class="chip qclock${clockLeft(s,q.id)<=10?' low':''}" id="qclock" role="timer" data-act="clock-off" aria-label="Time left. Tap to turn the clock off for this set">${clockText(clockLeft(s,q.id))}</button>`:''}</div></div>
+ ${s.unlimited?unlimitedBar(s):`<div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(answered/s.questions.length*100)}"><div class="progress-fill" style="width:${Math.round(answered/s.questions.length*100)}%"></div></div>`}
  <section class="panel q-panel${qEnter?' q-enter':''}"><div class="question-head"><div class="actions"><span class="chip">${q.isMath?'✎ Mathematics':'◈ Concept'}</span><span class="chip">${HTML(q.topic)}</span></div><div class="actions">${`<button data-act="unsure" class="btn sm ${s.unsure?.[q.id]?'primary':'ghost'}" aria-pressed="${!!s.unsure?.[q.id]}">${s.unsure?.[q.id]?'✓ Guessed':'? I guessed'}</button>`}<button data-act="flag" class="btn sm ghost" aria-pressed="${s.flags.includes(q.id)}">${s.flags.includes(q.id)?'⚑ Flagged':'⚐ Flag'}</button></div></div>
  <p class="question-body">${HTML(q.prompt)}</p><div class="choices${JUST===q.id?' just':''}">${choiceButtons(q,s,revealed,choice)}</div>
  ${revealed?`<div class="divider"></div><div class="notice verdict ${choice===q.correct?'success':'warn'}">${choice===q.correct?(y?(y.won?`Correct. That's ${y.goal} in a row. YOLO conquered.`:`Correct. ${y.streak} in a row.`):'Correct — excellent.'):(timed?'Time\'s up. The correct answer is ':y?`Streak over at ${y.streak}. The correct answer is `:'Not quite. The correct answer is ')+letterOf(perm,q.correct)+'.'}</div><div class="explanation" style="margin-top:13px">${noteHTML(q,perm,choice)}</div>${note?`<div class="actions" style="margin-top:10px"><button class="btn sm ${note.written?'ghost':'primary'}" data-written="${HTML(note.id)}">${note.written?'✓ Written in my notebook':'I wrote this one down'}</button></div>`:''}${reportRow(q.id)}`:''}
  <div class="question-footer"><div class="actions">${y?(revealed?(choice===q.correct?(yEnd?'':button('next','Next →','primary')):button('yolo-restart','↺ Start over at question 1','primary')):''):button('previous','← Previous','ghost')+button('next','Next →',revealed?'primary':'ghost')}</div><div class="actions">${yEnd?button('end-session',y.won?'🏆 Finish: 25 in a row':'Finish this run','primary'):button('end-session',isExam?'Submit Exam':'Finish Practice',isExam?'primary':'ghost')}</div></div></section>
- ${y?'':`<section class="panel"><div class="section-head"><h3>Question Navigator</h3><span class="small muted">${answered}/${s.questions.length} answered · ${s.flags.length} flagged</span></div><div class="exam-numbers">${s.questions.map((id,i)=>`<button data-jump="${i}" class="${i===s.cursor?'current':''} ${Number.isInteger(s.answers[id])?'answered':''} ${s.flags.includes(id)?'flagged':''}" aria-label="Go to question ${i+1}">${i+1}</button>`).join('')}</div></section>`}`;
+ ${y||s.unlimited?'':`<section class="panel"><div class="section-head"><h3>Question Navigator</h3><span class="small muted">${answered}/${s.questions.length} answered · ${s.flags.length} flagged</span></div><div class="exam-numbers">${s.questions.map((id,i)=>`<button data-jump="${i}" class="${i===s.cursor?'current':''} ${Number.isInteger(s.answers[id])?'answered':''} ${s.flags.includes(id)?'flagged':''}" aria-label="Go to question ${i+1}">${i+1}</button>`).join('')}</div></section>`}`;
 }
 // tell the app (and Claude) something is off with a question; confusing ones come back with the rule first
 const REPORT_KINDS=[['confusing','Confusing'],['prepxl','PrepXL says different']];
@@ -4192,7 +4196,7 @@ function clockLeft(s,id){return Math.max(0,Math.ceil(s.clock-(Date.now()-(s.qSta
 function tickClock(s){if(!s.clock)return;const id=s.questions[s.cursor],el=document.querySelector('#qclock');if(!el||s.revealed[id]||!s.qStart?.[id])return;
  const left=clockLeft(s,id);el.textContent=clockText(left);el.classList.toggle('low',left<=10);if(left===0){const q=QMAP.get(id);if(q)timeOut(s,q)}}
 // the clock ran out: a miss, and the answer is shown, like any wrong pick
-function timeOut(s,q){if(!s||s.revealed[q.id])return;JUST=q.id;const g0=gameSnap();s.revealed[q.id]=true;s.timedOut=s.timedOut||{};s.timedOut[q.id]=true;recordAttempt(q,null,s);
+function timeOut(s,q){if(!s||s.revealed[q.id])return;JUST=q.id;const g0=gameSnap();tallyUp(s,false);s.revealed[q.id]=true;s.timedOut=s.timedOut||{};s.timedOut[q.id]=true;recordAttempt(q,null,s);
  addNote(q,null,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);persist();render();gameAfter(g0)}
 function yoloAfter(s,q,pick){const y=s.yolo,ok=pick===q.correct;y.log.push({id:q.id,pick,ok});
  if(ok){y.streak++;y.best=Math.max(y.best,y.streak);if(y.streak>=y.goal)y.won=true}
@@ -4272,6 +4276,22 @@ function heroStats(){const R=readiness(mastery(state.attempts),state.sessions),P
  const day=P.exam instanceof Date?P.exam.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'';
  return `<div class="hero-stats"><div class="ring" role="img" aria-label="Readiness ${none?'not measured yet':pct+' percent'}"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ring1)"/><stop offset=".5" style="stop-color:var(--ring2)"/><stop offset="1" style="stop-color:var(--ring3)"/></linearGradient></defs><circle class="ring-bg" cx="60" cy="60" r="52"/>${pct?`<circle class="ring-fg" cx="60" cy="60" r="52" stroke="url(#ringGrad)" stroke-dasharray="${C}" style="--off:${(C*(1-pct/100)).toFixed(1)}"/>`:''}</svg><div class="ring-in"><b>${none?'—':pct}${none?'':'<small>%</small>'}</b><span>READY</span></div></div>
  <div class="hero-count"><b>${Math.max(0,P.dExam|0)}</b><span>days to test day</span><em>${HTML(day)}</em></div></div>`}
+// 6.3: Unlimited practice. It never ends on its own: more questions are added as you near the end, new rules first; once every rule in
+// the filter has been asked, it keeps going with ones you have seen (never the last 10 again right away). Only Finish ends it.
+function topUp(s){if(!s.unlimited||s.poolDone)return 0;const fams=new Set(s.questions.map(id=>QMAP.get(id)?.family));
+ const sel=selectQuestions(QUESTIONS,state.exposures,state.attempts,{...(s.req||{}),count:10,exclude:[...fams]}),add=sel.questions.filter(q=>!fams.has(q.family));
+ if(!add.length){const recent=s.questions.slice(-10).map(id=>QMAP.get(id)?.family);
+  let again=selectQuestions(QUESTIONS,state.exposures,state.attempts,{...(s.req||{}),mode:'adaptive',unlimited:true,count:10,exclude:recent}).questions;
+  if(!again.length)again=selectQuestions(QUESTIONS,state.exposures,state.attempts,{...(s.req||{}),mode:'adaptive',unlimited:true,count:10}).questions;
+  if(!again.length)return 0;
+  if(!s.looped){s.looped=true;toast('You have seen every rule in this filter. Repeats start now: newest wordings first.')}
+  for(const q of again){const i=s.questions.indexOf(q.id);if(i<0)continue;   // the same question again: it moves to the end with a clean slate
+   s.questions.splice(i,1);if(i<s.cursor)s.cursor--;delete s.answers[q.id];delete s.revealed[q.id];if(s.timedOut)delete s.timedOut[q.id];if(s.qStart)delete s.qStart[q.id];if(s.carded)delete s.carded[q.id]}
+  s.questions.push(...again.map(q=>q.id));s.perm={...s.perm,...makePerms(again)};exposeQuestions(again);return again.length}
+ s.questions.push(...add.map(q=>q.id));s.perm={...s.perm,...makePerms(add)};s.freshIds=[...new Set([...s.freshIds,...add.filter(q=>!state.exposures[q.family]).map(q=>q.id)])];exposeQuestions(add);return add.length}
+function unlimitedBar(s){const t=s.tally||{n:0,ok:0},p=t.n?Math.round(t.ok/t.n*100):0;
+ return `<div class="unl-bar"><span class="chip">∞ ${t.n} answered</span><span class="chip ${t.n?(p>=75?'good':'low'):''}">✓ ${t.ok} right${t.n?` · ${p}%`:''}</span></div>`}
+function tallyUp(s,ok){if(!s.unlimited)return;s.tally=s.tally||{n:0,ok:0};s.tally.n++;if(ok)s.tally.ok++}
 let JUST=null;   // the question you just answered: its choices pop (right) or shake (wrong) once
 let ENTER=false,LAST_ROUTE=null,LAST_QK=null;
 // 5.8: confetti for a passed set (75%+, 10 or more questions) and for winning YOLO
@@ -4288,9 +4308,10 @@ function startSession(type,override){if(state.active){if(!confirm('Replace your 
   yolo={goal:YOLO_GOAL,streak:0,best:0,restarts:0,log:[],won:false,req:{category:request.category,code:request.code,set:request.set,math:request.math,statements:request.statements,only:request.only}}}
  const selected=selectQuestions(QUESTIONS,state.exposures,state.attempts,request);
  if(!selected.questions.length){toast('No eligible questions. Try another mode or category.',true);return}
- if(selected.shortage>0&&!confirm(`Only ${selected.available} of ${selected.requested} eligible questions are available. Start a shorter set with no repeats?`))return;
+ const unlimited=type==='practice'&&!yolo&&Number(request.count)===0;   // 6.3: starts with 10 and keeps adding
+ if(selected.shortage>0&&!unlimited&&!confirm(`Only ${selected.available} of ${selected.requested} eligible questions are available. Start a shorter set with no repeats?`))return;
  const lessonFor=type==='practice'&&request.mode!=='learn'&&!yolo?selected.questions.filter(q=>{const e=state.exposures[q.family];return e&&(e.confusing||((e.lapses||0)>=2&&e.lastCorrect===false))}).map(q=>q.id):[];
- const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,statements:request.statements,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{},clock:type==='practice'&&!yolo&&request.mode!=='learn'&&request.clock!=='off'?(CLOCK[request.difficulty]||0):0,qStart:{},timedOut:{},yolo};
+ const active={id:newId(),lessonFor,type,mode:request.mode,math:request.math,statements:request.statements,difficulty:request.difficulty,startedAt:new Date().toISOString(),deadlineAt:type==='exam'?Date.now()+Math.round(selected.questions.length/120*190*60000):null,questions:selected.questions.map(q=>q.id),perm:makePerms(selected.questions),freshIds:selected.questions.filter(q=>!state.exposures[q.family]).map(q=>q.id),answers:{},revealed:{},cursor:0,flags:[],done:false,learn:request.mode==='learn',carded:{},unsure:{},unlimited,req:unlimited?{mode:request.mode,difficulty:request.difficulty,math:request.math,statements:request.statements,category:request.category,code:request.code,set:request.set,only:request.only}:null,clock:type==='practice'&&!yolo&&request.mode!=='learn'&&request.clock!=='off'?(CLOCK[request.difficulty]||0):0,qStart:{},timedOut:{},yolo};
  if(state.active)releaseSeen(state,state.active.questions);exposeQuestions(selected.questions);state.active=active;state.route=type;persist();render();window.scrollTo(0,0);toast(`Started: ${selected.freshCount} fresh · ${selected.reviewCount} review${selected.againCount?` · ${selected.againCount} new wording`:''}${selected.repeats?` · ${selected.repeats} seen before`:''}`);
 }
 function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family===q.family);const correct=chosen===q.correct;
@@ -4301,7 +4322,7 @@ function recordAttempt(q,chosen,s){const prior=state.attempts.some(a=>a.family==
 function selectAnswer(index){const s=currentSession();if(!s)return;const q=QMAP.get(s.questions[s.cursor]);if(!q)return;
  if(s.type==='practice'&&s.revealed[q.id])return;
  if(s.type==='exam'){s.answers[q.id]=index}
- else{const g0=gameSnap();s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);if(s.yolo){yoloAfter(s,q,index);if(s.yolo.won&&!s.yolo.party){s.yolo.party=true;setTimeout(confetti,80)}}JUST=q.id;gameAfter(g0)}
+ else{const g0=gameSnap();s.answers[q.id]=index;s.revealed[q.id]=true;recordAttempt(q,index,s);addNote(q,index,s.perm[q.id],s.id,s.flags.includes(q.id),!!s.unsure?.[q.id]);tallyUp(s,index===q.correct);if(s.unlimited&&s.cursor>=s.questions.length-3)topUp(s);if(s.yolo){yoloAfter(s,q,index);if(s.yolo.won&&!s.yolo.party){s.yolo.party=true;setTimeout(confetti,80)}}JUST=q.id;gameAfter(g0)}
  persist();render();}
 function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.type==='exam'&&!expired){const missing=s.questions.length-Object.keys(s.answers).length;if(missing&&!confirm(`Submit with ${missing} unanswered questions? They will count as incorrect, and their rules go back to your fresh pile.`))return}
@@ -4309,9 +4330,11 @@ function finishSession(expired=false){const s=currentSession();if(!s)return;
  if(s.type==='exam'){for(const id of s.questions){if(Number.isInteger(s.answers[id])){const q=QMAP.get(id);recordAttempt(q,s.answers[id],s);addNote(q,s.answers[id],s.perm[id],s.id,s.flags.includes(id),!!s.unsure?.[id])}}}
  for(const id of s.flags){const q=QMAP.get(id);if(q&&!state.notes.some(n=>n.session===s.id&&n.qid===id))addNote(q,Number.isInteger(s.answers[id])?s.answers[id]:null,s.perm[id],s.id,true,!!s.unsure?.[id])}   // flagged and skipped: still a note, so you can study it
  releaseSeen(state,s.questions);   // the ones you did not answer go back
+ if(s.unlimited)s.questions=s.questions.filter(id=>Number.isInteger(s.answers[id])||s.timedOut?.[id]);   // unlimited: the score counts what you answered, not the next batch waiting
  if(s.yolo){const all=new Map();for(const x of s.yolo.log)all.set(x.id,x.pick);s.questions=[...all.keys()];s.answers=Object.fromEntries([...all].filter(([,p])=>Number.isInteger(p)));   // YOLO: every run of the session
   if(s.yolo.log.length)state.yolo={best:Math.max(state.yolo?.best||0,s.yolo.best),runs:(state.yolo?.runs||0)+1,wins:(state.yolo?.wins||0)+(s.yolo.won?1:0)}}
  const r=scoreSession(s,QUESTIONS);
+ if(s.unlimited&&s.tally){r.total=r.answered=s.tally.n;r.correct=s.tally.ok;r.pct=r.total?Math.round(r.correct/r.total*100):0;r.passed=r.pct>=75}   // every answer, repeats included
  if(s.yolo?s.yolo.won:(r.total>=10&&r.pct>=75))setTimeout(confetti,300);
  const bonus=(s.type==='exam'&&s.questions.length===120?100+(r.pct>=75?150:0):0)+(s.yolo?.won?250:0);gameOf().bonus+=bonus;   // 5.9: a full exam and a YOLO win pay extra
  const sessXP=state.attempts.filter(a=>a.sessionId===s.id).reduce((t,a)=>t+xpOf(a),0)+bonus;
@@ -4364,7 +4387,7 @@ document.addEventListener('click',e=>{
  case 'start-practice':startSession('practice');break;
  case 'full-exam':startSession('exam',{count:120,mode:'adaptive',difficulty:'standard',category:'ALL',code:''});break;case 'yolo-start':startSession('practice',{difficulty:'yolo'});break;case 'yolo-restart':yoloRestart();break;case 'clock-off':if(s&&s.clock){s.clock=0;persist();render();toast('Clock off for the rest of this set.')}break;case 'start-exam':startSession('exam');break;
  case 'review-missed':{const r=state.sessions.find(x=>x.id===state.lastResult),missed=r?r.total-r.correct:10;startSession('practice',{mode:'review',category:'ALL',difficulty:'standard',count:Math.min(30,Math.max(5,missed))});break}
- case 'next':if(s){s.cursor=Math.min(s.questions.length-1,s.cursor+1);persist();render();window.scrollTo(0,0)}break;
+ case 'next':if(s){if(s.unlimited&&s.cursor>=s.questions.length-2)topUp(s);s.cursor=Math.min(s.questions.length-1,s.cursor+1);persist();render();window.scrollTo(0,0)}break;
  case 'previous':if(s){s.cursor=Math.max(0,s.cursor-1);persist();render();window.scrollTo(0,0)}break;
  case 'check':if(s){s.carded=s.carded||{};s.carded[s.questions[s.cursor]]=true;persist();render();window.scrollTo(0,0)}break;
  case 'unsure':if(s){const id=s.questions[s.cursor];s.unsure=s.unsure||{};s.unsure[id]=!s.unsure[id];
@@ -4418,7 +4441,7 @@ if(location.hash&&navs.some(([r])=>r===location.hash.slice(1)))state.route=locat
 applyTheme(state.settings.theme);gameSync();render();persist();        // 6.1: your theme first, then 5.9: badges already earned are filed quietly. Saves the upgrade (new settings, A5 page, answer orders for an open exam) straight away
 // updates install themselves: the app checks on every open and when you come back to it. The offline worker keeps one copy,
 // named by its build time; when that copy is newer than the page on screen, a fresh open reloads into it, otherwise a bar offers it.
-const BUILD='20261021190915-19ad9085',OPENED=Date.now();
+const BUILD='20261021193904-d83fb3e2',OPENED=Date.now();
 const buildStamp=k=>{const m=/^(?:mlo-master-)?(\d{14})-/.exec(k||'');return m?+m[1]:0};
 function updateBar(){if(document.querySelector('.update-bar'))return;const el=document.createElement('div');el.className='update-bar';el.setAttribute('role','status');el.innerHTML=`<span>A new version is ready.</span><button class="btn sm primary" data-act="reload-app">Update now</button>`;document.body.append(el)}
 async function newerReady(){try{const mine=buildStamp(BUILD);return !!mine&&'caches' in self&&(await caches.keys()).some(k=>buildStamp(k)>mine)}catch{return false}}
