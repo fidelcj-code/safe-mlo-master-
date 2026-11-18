@@ -1,6 +1,6 @@
 /* Offline mode: the whole app is kept on this device after the first visit, so it runs with no internet. A new version is fetched
    fresh (not from the browser cache) and takes over on its own. Settings → Offline mode asks this worker what it has saved and can refresh it. */
-const VERSION = 'mlo-master-20261118105410-5cc7d7bb';
+const VERSION = 'mlo-master-20261118114523-1b3e718b';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 const save = c => Promise.all(CORE.map(u => c.add(new Request(u, {cache: 'reload'})).catch(() => null)));
 const count = c => Promise.all(CORE.map(u => c.match(u))).then(a => ({version: VERSION, saved: a.filter(Boolean).length, total: CORE.length}));
